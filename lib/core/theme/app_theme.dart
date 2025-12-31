@@ -7,6 +7,7 @@ class AppTheme {
   static const Color white = Color(0xFFFFFFFF);
   static const Color darkGrey = Color(0xFF1A1A1A);
   static const Color lightGrey = Color(0xFFF5F5F5);
+  static const Color darkBackground = Color(0xFF121212);
 
   static final ThemeData lightTheme = ThemeData(
     useMaterial3: true,
@@ -39,43 +40,43 @@ class AppTheme {
     cardColor: white,
     iconTheme: const IconThemeData(color: black),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: black,
-      foregroundColor: white,
+      backgroundColor: Colors.cyan,
+      foregroundColor: Colors.white,
     ),
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: black),
+        borderSide: const BorderSide(color: Colors.cyan),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: black, width: 2),
+        borderSide: const BorderSide(color: Colors.cyan, width: 2),
       ),
-      labelStyle: const TextStyle(color: black),
-      prefixIconColor: black,
-      suffixIconColor: black,
+      labelStyle: const TextStyle(color: Colors.cyan),
+      prefixIconColor: Colors.cyan,
+      suffixIconColor: Colors.cyan,
     ),
     textSelectionTheme: const TextSelectionThemeData(
-      cursorColor: black,
-      selectionColor: Color(0x33000000),
-      selectionHandleColor: black,
+      cursorColor: Colors.cyan,
+      selectionColor: Color(0x3300BCD4),
+      selectionHandleColor: Colors.cyan,
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: black,
-        foregroundColor: white,
+        backgroundColor: Colors.cyan,
+        foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: black,
-        side: const BorderSide(color: black),
+        foregroundColor: Colors.cyan,
+        side: const BorderSide(color: Colors.cyan),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(foregroundColor: black),
+      style: TextButton.styleFrom(foregroundColor: Colors.cyan),
     ),
     snackBarTheme: const SnackBarThemeData(
       backgroundColor: black,
@@ -87,7 +88,7 @@ class AppTheme {
   static final ThemeData darkTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
-    scaffoldBackgroundColor: black,
+    scaffoldBackgroundColor: darkBackground,
     primaryColor: white,
     colorScheme: ColorScheme.dark(
       primary: white,
@@ -96,10 +97,10 @@ class AppTheme {
       onSecondary: black,
       surface: darkGrey,
       onSurface: white,
-      background: black,
+      background: darkBackground,
       onBackground: white,
-      error: white,
-      onError: black,
+      error: Colors.redAccent,
+      onError: white,
     ),
     textTheme: GoogleFonts.outfitTextTheme().apply(
       bodyColor: white,
@@ -109,49 +110,49 @@ class AppTheme {
       centerTitle: true,
       elevation: 0,
       scrolledUnderElevation: 0,
-      backgroundColor: black,
+      backgroundColor: darkBackground,
       foregroundColor: white,
     ),
     cardColor: darkGrey,
     iconTheme: const IconThemeData(color: white),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: white,
-      foregroundColor: black,
+      backgroundColor: Colors.cyan,
+      foregroundColor: white,
     ),
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: white),
+        borderSide: const BorderSide(color: Colors.cyan),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: white, width: 2),
+        borderSide: const BorderSide(color: Colors.cyan, width: 2),
       ),
-      labelStyle: const TextStyle(color: white),
-      prefixIconColor: white,
-      suffixIconColor: white,
+      labelStyle: const TextStyle(color: Colors.cyan),
+      prefixIconColor: Colors.cyan,
+      suffixIconColor: Colors.cyan,
     ),
     textSelectionTheme: const TextSelectionThemeData(
-      cursorColor: white,
-      selectionColor: Color(0x33FFFFFF),
-      selectionHandleColor: white,
+      cursorColor: Colors.cyan,
+      selectionColor: Color(0x3300BCD4), // Cyan with opacity
+      selectionHandleColor: Colors.cyan,
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: white,
-        foregroundColor: black,
+        backgroundColor: Colors.cyan,
+        foregroundColor: white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: white,
-        side: const BorderSide(color: white),
+        foregroundColor: Colors.cyan,
+        side: const BorderSide(color: Colors.cyan),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(foregroundColor: white),
+      style: TextButton.styleFrom(foregroundColor: Colors.cyan),
     ),
     snackBarTheme: const SnackBarThemeData(
       backgroundColor: white,

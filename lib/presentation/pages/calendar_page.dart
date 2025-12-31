@@ -58,7 +58,10 @@ class _CalendarViewState extends State<CalendarView> {
       appBar: AppBar(
         title: const Text(
           'Reminders & Birthdays',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.cyan,
+          ),
         ),
         elevation: 0,
       ),
@@ -74,8 +77,8 @@ class _CalendarViewState extends State<CalendarView> {
         },
         label: const Text('Add Birthday'),
         icon: const Icon(Icons.cake),
-        backgroundColor: isDark ? AppTheme.white : AppTheme.black,
-        foregroundColor: isDark ? AppTheme.black : AppTheme.white,
+        backgroundColor: Colors.cyan,
+        foregroundColor: Colors.white,
       ),
       body: BlocBuilder<ReminderBloc, ReminderState>(
         builder: (context, state) {
@@ -97,7 +100,9 @@ class _CalendarViewState extends State<CalendarView> {
                   color: isDark ? AppTheme.darkGrey : AppTheme.white,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+                    color: isDark
+                        ? Colors.cyan.withOpacity(0.3)
+                        : Colors.cyan.withOpacity(0.5),
                     width: 1,
                   ),
                 ),
@@ -238,7 +243,9 @@ class _CalendarViewState extends State<CalendarView> {
         color: isDark ? AppTheme.darkGrey : AppTheme.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+          color: isDark
+              ? Colors.cyan.withOpacity(0.3)
+              : Colors.cyan.withOpacity(0.5),
           width: 1,
         ),
       ),
@@ -292,8 +299,8 @@ class _CalendarViewState extends State<CalendarView> {
                   icon: const Icon(Icons.delete_outline),
                   onPressed: () {
                     context.read<ReminderBloc>().add(
-                      DeleteReminder(reminder.id),
-                    );
+                          DeleteReminder(reminder.id),
+                        );
                   },
                 ),
               ],
@@ -406,19 +413,19 @@ class _CalendarViewState extends State<CalendarView> {
 
                       if (reminder == null) {
                         parentContext.read<ReminderBloc>().add(
-                          AddReminder(newReminder),
-                        );
+                              AddReminder(newReminder),
+                            );
                       } else {
                         parentContext.read<ReminderBloc>().add(
-                          UpdateReminder(newReminder),
-                        );
+                              UpdateReminder(newReminder),
+                            );
                       }
                       Navigator.pop(context);
                     }
                   },
                   style: FilledButton.styleFrom(
-                    backgroundColor: isDark ? AppTheme.white : AppTheme.black,
-                    foregroundColor: isDark ? AppTheme.black : AppTheme.white,
+                    backgroundColor: Colors.cyan,
+                    foregroundColor: Colors.white,
                   ),
                   child: Text(reminder == null ? 'Add' : 'Save'),
                 ),

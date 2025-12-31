@@ -29,7 +29,10 @@ class _DiaryPageState extends State<DiaryPage> {
       appBar: AppBar(
         title: const Text(
           'My Diary',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.cyan,
+          ),
         ),
         elevation: 0,
         actions: [
@@ -95,9 +98,7 @@ class _DiaryPageState extends State<DiaryPage> {
                       'No diary entries yet',
                       style: TextStyle(
                         fontSize: 18,
-                        color: isDark
-                            ? AppTheme.white.withOpacity(0.7)
-                            : AppTheme.black.withOpacity(0.7),
+                        color: Colors.cyan,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -138,8 +139,8 @@ class _DiaryPageState extends State<DiaryPage> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDark
-              ? AppTheme.white.withOpacity(0.1)
-              : AppTheme.black.withOpacity(0.1),
+              ? Colors.cyan.withOpacity(0.3)
+              : Colors.cyan.withOpacity(0.5), // Visible Cyan in Light Mode
           width: 1,
         ),
       ),
@@ -163,6 +164,7 @@ class _DiaryPageState extends State<DiaryPage> {
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
+                          color: Colors.cyan,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

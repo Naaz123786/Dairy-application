@@ -90,7 +90,13 @@ class _LoginPageState extends State<LoginPage> {
     final secondaryColor = isDark ? AppTheme.black : AppTheme.white;
 
     return Scaffold(
-      appBar: AppBar(title: Text(_isSignUp ? 'Sign Up' : 'Login')),
+      appBar: AppBar(
+        title: Text(
+          _isSignUp ? 'Sign Up' : 'Login',
+          style:
+              const TextStyle(fontWeight: FontWeight.bold, color: Colors.cyan),
+        ),
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),

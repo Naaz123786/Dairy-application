@@ -19,7 +19,10 @@ class HomeDashboardPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Home',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.cyan,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -33,14 +36,22 @@ class HomeDashboardPage extends StatelessWidget {
             const SizedBox(height: 32),
             const Text(
               'Quick Stats',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.cyan,
+              ),
             ),
             const SizedBox(height: 16),
             _buildStatsRow(isDark),
             const SizedBox(height: 32),
             const Text(
               'Quick Actions',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.cyan,
+              ),
             ),
             const SizedBox(height: 16),
             _buildQuickActionCard(
@@ -173,12 +184,18 @@ class HomeDashboardPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          greeting,
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            letterSpacing: -0.5,
+        ShaderMask(
+          shaderCallback: (bounds) => const LinearGradient(
+            colors: [Colors.cyan, Colors.lightBlueAccent],
+          ).createShader(bounds),
+          child: Text(
+            greeting,
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.5,
+              color: Colors.white, // Required for ShaderMask
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -212,7 +229,9 @@ class HomeDashboardPage extends StatelessWidget {
         color: isDark ? AppTheme.darkGrey : AppTheme.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark ? AppTheme.white : AppTheme.black,
+          color: isDark
+              ? Colors.cyan.withOpacity(0.3)
+              : Colors.cyan.withOpacity(0.5),
           width: 2,
         ),
       ),
@@ -221,12 +240,14 @@ class HomeDashboardPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isDark ? AppTheme.white : AppTheme.black,
+              color: isDark
+                  ? Colors.cyan.withOpacity(0.1)
+                  : Colors.cyan.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(
+            child: const Icon(
               Icons.format_quote,
-              color: isDark ? AppTheme.black : AppTheme.white,
+              color: Colors.cyan,
               size: 28,
             ),
           ),
@@ -258,7 +279,9 @@ class HomeDashboardPage extends StatelessWidget {
         color: isDark ? AppTheme.darkGrey : AppTheme.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+          color: isDark
+              ? Colors.cyan.withOpacity(0.3)
+              : Colors.cyan.withOpacity(0.5),
           width: 1,
         ),
       ),
@@ -268,10 +291,12 @@ class HomeDashboardPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isDark ? Colors.grey[800] : Colors.grey[200],
+              color: isDark
+                  ? Colors.cyan.withOpacity(0.1)
+                  : Colors.cyan.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, size: 24),
+            child: Icon(icon, size: 24, color: Colors.cyan),
           ),
           const SizedBox(height: 16),
           Text(
@@ -319,7 +344,9 @@ class HomeDashboardPage extends StatelessWidget {
           color: isDark ? AppTheme.darkGrey : AppTheme.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+            color: isDark
+                ? Colors.cyan.withOpacity(0.3)
+                : Colors.cyan.withOpacity(0.5),
             width: 1,
           ),
         ),
@@ -328,10 +355,12 @@ class HomeDashboardPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDark ? Colors.grey[800] : Colors.grey[200],
+                color: isDark
+                    ? Colors.cyan.withOpacity(0.1)
+                    : Colors.cyan.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, size: 24),
+              child: Icon(icon, size: 24, color: Colors.cyan),
             ),
             const SizedBox(width: 16),
             Expanded(

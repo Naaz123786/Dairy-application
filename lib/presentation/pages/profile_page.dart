@@ -31,26 +31,28 @@ class ProfilePage extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isDark ? AppTheme.white : AppTheme.black,
+                        color: Colors.black,
                         width: 3,
                       ),
                     ),
                     child: CircleAvatar(
                       radius: 50,
-                      backgroundColor: isDark
-                          ? AppTheme.darkGrey
-                          : AppTheme.lightGrey,
-                      child: Icon(
+                      backgroundColor: Colors.white,
+                      child: const Icon(
                         Icons.person,
                         size: 50,
-                        color: isDark ? AppTheme.white : AppTheme.black,
+                        color: Colors.cyan,
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
                     'User Name',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.cyan,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -157,12 +159,12 @@ class ProfilePage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDark ? AppTheme.white : AppTheme.black,
+                    color: Colors.cyan.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     isDark ? Icons.dark_mode : Icons.light_mode,
-                    color: isDark ? AppTheme.black : AppTheme.white,
+                    color: Colors.cyan,
                     size: 24,
                   ),
                 ),
@@ -237,10 +239,10 @@ class ProfilePage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.grey[800] : Colors.grey[200],
+                    color: Colors.cyan.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, size: 24),
+                  child: Icon(icon, size: 24, color: Colors.cyan),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -287,10 +289,10 @@ class ProfilePage extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: isDark ? Colors.grey[800] : Colors.grey[200],
+            color: Colors.cyan.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon),
+          child: Icon(icon, color: Colors.cyan),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
         trailing: const Icon(Icons.chevron_right),

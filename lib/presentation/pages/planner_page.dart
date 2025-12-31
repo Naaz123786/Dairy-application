@@ -27,20 +27,16 @@ class PlannerView extends StatelessWidget {
         appBar: AppBar(
           title: const Text(
             'My Planner',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.cyan,
+            ),
           ),
           elevation: 0,
           bottom: TabBar(
             indicatorSize: TabBarIndicatorSize.tab,
-            indicator: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.black,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            labelColor: Theme.of(context).brightness == Brightness.dark
-                ? Colors.black
-                : Colors.white,
+            indicatorColor: Colors.cyan,
+            labelColor: Colors.cyan,
             unselectedLabelColor: Colors.grey,
             tabs: const [
               Tab(icon: Icon(Icons.schedule), text: 'Daily Routine'),
@@ -94,8 +90,8 @@ class RoutineTab extends StatelessWidget {
                     onTap: () => _showRoutineDialog(context, reminder: routine),
                     onDelete: () {
                       context.read<ReminderBloc>().add(
-                        DeleteReminder(routine.id),
-                      );
+                            DeleteReminder(routine.id),
+                          );
                     },
                     trailingActions: [
                       IconButton(
@@ -223,12 +219,12 @@ class RoutineTab extends StatelessWidget {
 
                       if (reminder == null) {
                         parentContext.read<ReminderBloc>().add(
-                          AddReminder(newReminder),
-                        );
+                              AddReminder(newReminder),
+                            );
                       } else {
                         parentContext.read<ReminderBloc>().add(
-                          UpdateReminder(newReminder),
-                        );
+                              UpdateReminder(newReminder),
+                            );
                       }
                       Navigator.pop(context);
                     }
@@ -269,9 +265,8 @@ class ExamsTab extends StatelessWidget {
                 itemCount: exams.length,
                 itemBuilder: (context, index) {
                   final exam = exams[index];
-                  final daysLeft = exam.scheduledTime
-                      .difference(DateTime.now())
-                      .inDays;
+                  final daysLeft =
+                      exam.scheduledTime.difference(DateTime.now()).inDays;
 
                   final isUrgent = daysLeft < 7;
                   final gradientColors = isUrgent
@@ -424,12 +419,12 @@ class ExamsTab extends StatelessWidget {
 
                       if (reminder == null) {
                         parentContext.read<ReminderBloc>().add(
-                          AddReminder(newReminder),
-                        );
+                              AddReminder(newReminder),
+                            );
                       } else {
                         parentContext.read<ReminderBloc>().add(
-                          UpdateReminder(newReminder),
-                        );
+                              UpdateReminder(newReminder),
+                            );
                       }
                       Navigator.pop(context);
                     }
@@ -464,7 +459,9 @@ Widget _buildGradientCard(
       color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
       borderRadius: BorderRadius.circular(20),
       border: Border.all(
-        color: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+        color: isDark
+            ? Colors.cyan.withOpacity(0.3)
+            : Colors.cyan.withOpacity(0.5),
         width: 1,
       ),
     ),
