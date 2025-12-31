@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "356878048664",
+    "project_id": "dairy-application-3db79",
+    "storage_bucket": "dairy-application-3db79.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:356878048664:android:824012123a3aeb863adfed",
+        "android_client_info": {
+          "package_name": "com.minidiary.com"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "356878048664-i3jmc68ufsjmf1dnq644ctr9u23a54pa.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVGNz0nyGvgHgoLKrFt2vMqvzat3n4zF0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "356878048664-i3jmc68ufsjmf1dnq644ctr9u23a54pa.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

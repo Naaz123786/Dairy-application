@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/routes/app_routes.dart';
+import '../../core/theme/app_theme.dart';
 import '../../domain/entities/diary_entry.dart';
 import '../bloc/diary_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class DiaryPage extends StatefulWidget {
   const DiaryPage({super.key});
@@ -21,9 +23,14 @@ class _DiaryPageState extends State<DiaryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Diary'),
+        title: const Text(
+          'My Diary',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         elevation: 0,
         actions: [
           IconButton(
@@ -35,19 +42,42 @@ class _DiaryPageState extends State<DiaryPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'diary_fab',
         onPressed: () {
+          final user = FirebaseAuth.instance.currentUser;
+          if (user == null) {
+            Navigator.pushNamed(context, AppRoutes.login);
+            return;
+          }
           Navigator.pushNamed(context, AppRoutes.diaryEdit);
         },
         label: const Text('Write'),
         icon: const Icon(Icons.create),
-        backgroundColor: const Color(0xFF764ba2),
-        foregroundColor: Colors.white,
       ),
       body: BlocBuilder<DiaryBloc, DiaryState>(
         builder: (context, state) {
           if (state is DiaryLoading) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (state is DiaryLoaded) {
+            return const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation(Colors.grey),
+              ),
+            );
+          }
+
+          if (state is DiaryError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64),
+                  const SizedBox(height: 16),
+                  Text(state.message),
+                ],
+              ),
+            );
+          }
+
+          if (state is DiaryLoaded) {
             if (state.entries.isEmpty) {
               return Center(
                 child: Column(
@@ -56,60 +86,62 @@ class _DiaryPageState extends State<DiaryPage> {
                     Icon(
                       Icons.book_outlined,
                       size: 80,
-                      color: Colors.grey.withOpacity(0.5),
+                      color: isDark
+                          ? AppTheme.white.withOpacity(0.2)
+                          : AppTheme.black.withOpacity(0.2),
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Your story begins here.',
+                      'No diary entries yet',
                       style: TextStyle(
                         fontSize: 18,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
+                        color: isDark
+                            ? AppTheme.white.withOpacity(0.7)
+                            : AppTheme.black.withOpacity(0.7),
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Tap "Write" to start.',
-                      style: TextStyle(color: Colors.grey),
+                    Text(
+                      'Tap the Write button to create your first entry',
+                      style: TextStyle(
+                        color: isDark
+                            ? AppTheme.white.withOpacity(0.5)
+                            : AppTheme.black.withOpacity(0.5),
+                      ),
                     ),
                   ],
                 ),
               );
             }
+
             return ListView.builder(
-              padding: const EdgeInsets.only(bottom: 80, top: 16),
+              padding: const EdgeInsets.all(16),
               itemCount: state.entries.length,
               itemBuilder: (context, index) {
                 final entry = state.entries[index];
-                return _buildGradientDiaryCard(context, entry);
+                return _buildDiaryCard(context, entry, isDark);
               },
             );
-          } else if (state is DiaryError) {
-            return Center(child: Text(state.message));
           }
+
           return const SizedBox.shrink();
         },
       ),
     );
   }
 
-  Widget _buildGradientDiaryCard(BuildContext context, DiaryEntry entry) {
+  Widget _buildDiaryCard(BuildContext context, DiaryEntry entry, bool isDark) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: isDark ? AppTheme.darkGrey : AppTheme.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF764ba2).withOpacity(0.4),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        border: Border.all(
+          color: isDark
+              ? AppTheme.white.withOpacity(0.1)
+              : AppTheme.black.withOpacity(0.1),
+          width: 1,
+        ),
       ),
       child: Material(
         color: Colors.transparent,
@@ -124,35 +156,40 @@ class _DiaryPageState extends State<DiaryPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Text(
                         entry.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (entry.mood.isNotEmpty)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
+                          horizontal: 12,
+                          vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: isDark
+                              ? AppTheme.white.withOpacity(0.1)
+                              : AppTheme.black.withOpacity(0.05),
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isDark
+                                ? AppTheme.white.withOpacity(0.2)
+                                : AppTheme.black.withOpacity(0.1),
+                          ),
                         ),
                         child: Text(
                           entry.mood,
                           style: const TextStyle(
-                            color: Colors.white,
                             fontSize: 12,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -160,35 +197,33 @@ class _DiaryPageState extends State<DiaryPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
+                  DateFormat('EEEE, d MMMM y').format(entry.date),
+                  style: TextStyle(
+                    color: isDark
+                        ? AppTheme.white.withOpacity(0.5)
+                        : AppTheme.black.withOpacity(0.5),
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
                   entry.content,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
                     fontSize: 15,
-                    height: 1.4,
+                    height: 1.5,
+                    color: isDark
+                        ? AppTheme.white.withOpacity(0.8)
+                        : AppTheme.black.withOpacity(0.8),
                   ),
                 ),
                 const SizedBox(height: 16),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Icon(
-                      Icons.calendar_today,
-                      size: 14,
-                      color: Colors.white.withOpacity(0.7),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      DateFormat.yMMMd().format(entry.date),
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 13,
-                      ),
-                    ),
-                    const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.white70),
-                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.edit, size: 20),
                       onPressed: () {
                         Navigator.pushNamed(
                           context,
@@ -198,16 +233,8 @@ class _DiaryPageState extends State<DiaryPage> {
                       },
                     ),
                     IconButton(
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        color: Colors.white70,
-                      ),
-                      visualDensity: VisualDensity.compact,
-                      onPressed: () {
-                        context.read<DiaryBloc>().add(
-                          DeleteDiaryEntry(entry.id),
-                        );
-                      },
+                      icon: const Icon(Icons.delete_outline, size: 20),
+                      onPressed: () => _showDeleteDialog(context, entry),
                     ),
                   ],
                 ),
@@ -215,6 +242,31 @@ class _DiaryPageState extends State<DiaryPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, DiaryEntry entry) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Entry'),
+        content: const Text(
+          'Are you sure you want to delete this diary entry?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              context.read<DiaryBloc>().add(DeleteDiaryEntry(entry.id));
+              Navigator.pop(ctx);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
   }

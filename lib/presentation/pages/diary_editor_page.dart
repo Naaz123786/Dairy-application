@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 import '../../domain/entities/diary_entry.dart';
 import '../bloc/diary_bloc.dart';
+import '../../core/theme/app_theme.dart';
 
 class DiaryEditorPage extends StatefulWidget {
   final DiaryEntry? entry;
@@ -41,70 +42,217 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.entry == null ? 'New Entry' : 'Edit Entry'),
+        title: Text(
+          widget.entry == null ? 'New Entry' : 'Edit Entry',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        elevation: 0,
         actions: [
-          IconButton(icon: const Icon(Icons.check), onPressed: _saveEntry),
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: FilledButton.icon(
+              onPressed: _saveEntry,
+              icon: const Icon(Icons.check, size: 20),
+              label: const Text('Save'),
+              style: FilledButton.styleFrom(
+                backgroundColor: isDark ? AppTheme.white : AppTheme.black,
+                foregroundColor: isDark ? AppTheme.black : AppTheme.white,
+              ),
+            ),
+          ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDatePicker(),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Title',
-                border: OutlineInputBorder(),
-              ),
+            _buildDatePicker(isDark),
+            const SizedBox(height: 24),
+            _buildTitleField(isDark),
+            const SizedBox(height: 24),
+            const Text(
+              'How are you feeling?',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 50,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: _moods.length,
-                itemBuilder: (context, index) {
-                  final mood = _moods[index];
-                  final isSelected = mood == _selectedMood;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: ChoiceChip(
-                      label: Text(mood),
-                      selected: isSelected,
-
-                      onSelected: (selected) {
-                        setState(() {
-                          if (selected) {
-                            _selectedMood = mood;
-                          } else {
-                            _selectedMood = null;
-                          }
-                        });
-                      },
-                    ),
-                  );
-                },
-              ),
+            const SizedBox(height: 12),
+            _buildMoodSelector(isDark),
+            const SizedBox(height: 24),
+            const Text(
+              'Write your thoughts',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: TextField(
-                controller: _contentController,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                decoration: const InputDecoration(
-                  labelText: 'Dear Diary...',
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
-                ),
-              ),
-            ),
+            const SizedBox(height: 12),
+            _buildContentField(isDark),
+            const SizedBox(height: 20),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDatePicker(bool isDark) {
+    return InkWell(
+      onTap: _pickDate,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isDark ? AppTheme.darkGrey : AppTheme.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark
+                ? AppTheme.white.withOpacity(0.5)
+                : AppTheme.black.withOpacity(0.5),
+            width: 2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? AppTheme.white : AppTheme.black,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.calendar_today,
+                color: isDark ? AppTheme.black : AppTheme.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Date',
+                    style: TextStyle(
+                      color: isDark
+                          ? AppTheme.white.withOpacity(0.5)
+                          : AppTheme.black.withOpacity(0.5),
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    DateFormat('EEEE, d MMMM y').format(_selectedDate),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_drop_down),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTitleField(bool isDark) {
+    return TextField(
+      controller: _titleController,
+      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+      decoration: InputDecoration(
+        labelText: 'Title',
+        hintText: 'Give your entry a title...',
+        prefixIcon: const Icon(Icons.title),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+        filled: true,
+        fillColor: isDark
+            ? AppTheme.darkGrey
+            : AppTheme.black.withOpacity(0.05),
+      ),
+    );
+  }
+
+  Widget _buildMoodSelector(bool isDark) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: _moods.map((mood) {
+        final isSelected = mood == _selectedMood;
+
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              if (isSelected) {
+                _selectedMood = null;
+              } else {
+                _selectedMood = mood;
+              }
+            });
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? (isDark ? AppTheme.white : AppTheme.black)
+                  : (isDark
+                        ? AppTheme.darkGrey
+                        : AppTheme.black.withOpacity(0.05)),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isSelected
+                    ? (isDark ? AppTheme.white : AppTheme.black)
+                    : (isDark
+                          ? AppTheme.white.withOpacity(0.1)
+                          : AppTheme.black.withOpacity(0.1)),
+                width: 2,
+              ),
+            ),
+            child: Text(
+              mood,
+              style: TextStyle(
+                color: isSelected
+                    ? (isDark ? AppTheme.black : AppTheme.white)
+                    : (isDark ? AppTheme.white : AppTheme.black),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildContentField(bool isDark) {
+    return Container(
+      height: 300,
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkGrey : AppTheme.black.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark
+              ? AppTheme.white.withOpacity(0.1)
+              : AppTheme.black.withOpacity(0.1),
+        ),
+      ),
+      child: TextField(
+        controller: _contentController,
+        maxLines: null,
+        expands: true,
+        textAlignVertical: TextAlignVertical.top,
+        style: const TextStyle(fontSize: 16, height: 1.5),
+        decoration: InputDecoration(
+          hintText: 'Dear Diary,\n\nToday was...',
+          hintStyle: TextStyle(
+            color: isDark
+                ? AppTheme.white.withOpacity(0.3)
+                : AppTheme.black.withOpacity(0.3),
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.all(20),
         ),
       ),
     );
@@ -113,7 +261,13 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
   void _saveEntry() {
     if (_titleController.text.isEmpty || _contentController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in both title and content')),
+        SnackBar(
+          content: const Text('Please fill in both title and content'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       );
       return;
     }
@@ -129,38 +283,16 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
     );
 
     context.read<DiaryBloc>().add(AddDiaryEntry(entry));
-    Navigator.pop(context);
-  }
 
-  Widget _buildDatePicker() {
-    return InkWell(
-      onTap: _pickDate,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          border: Border.all(color: Theme.of(context).colorScheme.outline),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.calendar_month,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              DateFormat('EEEE, d MMMM y').format(_selectedDate),
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
-            ),
-            const Spacer(),
-            const Icon(Icons.arrow_drop_down),
-          ],
-        ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Entry saved successfully! 📝'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
+
+    Navigator.pop(context);
   }
 
   Future<void> _pickDate() async {
@@ -169,6 +301,18 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
       initialDate: _selectedDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2050),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              onSurface: Theme.of(context).brightness == Brightness.dark
+                  ? AppTheme.white
+                  : AppTheme.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() {

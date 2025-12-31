@@ -1,7 +1,9 @@
 import 'package:get_it/get_it.dart';
 import 'core/security/security_service.dart';
 import 'data/datasources/local_database.dart';
+import 'data/datasources/firestore_database.dart';
 import 'data/repositories/diary_repository_impl.dart';
+import 'data/repositories/diary_repository_firestore_impl.dart';
 import 'domain/repositories/diary_repository.dart';
 import 'presentation/bloc/diary_bloc.dart';
 import 'core/services/notification_service.dart';
@@ -17,9 +19,12 @@ Future<void> init() async {
   sl.registerFactory(() => DiaryBloc(repository: sl()));
 
   // Repository
-  sl.registerLazySingleton<DiaryRepository>(() => DiaryRepositoryImpl(sl()));
+  sl.registerLazySingleton<DiaryRepository>(
+    () => DiaryRepositoryFirestoreImpl(sl()),
+  );
 
   // Data sources
+  sl.registerLazySingleton(() => FirestoreDatabase());
   sl.registerLazySingleton(() => LocalDatabase());
   sl.registerLazySingleton(() => SecurityService());
   sl.registerLazySingleton(() => NotificationService());

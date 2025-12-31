@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive/hive.dart';
 
 part 'diary_entry_model.g.dart';
@@ -34,4 +35,35 @@ class DiaryEntryModel extends HiveObject {
     required this.createdAt,
     required this.updatedAt,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'content': content,
+      'date': Timestamp.fromDate(date),
+      'mood': mood,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': Timestamp.fromDate(updatedAt),
+    };
+  }
+
+  factory DiaryEntryModel.fromMap(Map<String, dynamic> map, String docId) {
+    DateTime getDate(dynamic val) {
+      if (val is Timestamp) return val.toDate();
+      if (val is String) return DateTime.parse(val);
+      if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+      return DateTime.now();
+    }
+
+    return DiaryEntryModel(
+      id: docId,
+      title: map['title'] ?? '',
+      content: map['content'] ?? '',
+      date: getDate(map['date']),
+      mood: map['mood'] ?? 'Neutral',
+      createdAt: getDate(map['createdAt']),
+      updatedAt: getDate(map['updatedAt']),
+    );
+  }
 }

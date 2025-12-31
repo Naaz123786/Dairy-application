@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import '../bloc/reminder_bloc.dart';
 import '../../domain/entities/reminder.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../core/routes/app_routes.dart';
 
 class PlannerPage extends StatelessWidget {
   const PlannerPage({super.key});
@@ -23,9 +25,24 @@ class PlannerView extends StatelessWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('My Planner'),
-          bottom: const TabBar(
-            tabs: [
+          title: const Text(
+            'My Planner',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          elevation: 0,
+          bottom: TabBar(
+            indicatorSize: TabBarIndicatorSize.tab,
+            indicator: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            labelColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.black
+                : Colors.white,
+            unselectedLabelColor: Colors.grey,
+            tabs: const [
               Tab(icon: Icon(Icons.schedule), text: 'Daily Routine'),
               Tab(icon: Icon(Icons.school), text: 'Exams'),
             ],
@@ -98,7 +115,15 @@ class RoutineTab extends StatelessWidget {
           bottom: 16,
           right: 16,
           child: FloatingActionButton.extended(
-            onPressed: () => _showRoutineDialog(context),
+            heroTag: 'planner_routine_fab',
+            onPressed: () {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user == null) {
+                Navigator.pushNamed(context, AppRoutes.login);
+                return;
+              }
+              _showRoutineDialog(context);
+            },
             label: const Text('Add Routine'),
             icon: const Icon(Icons.add),
           ),
@@ -317,11 +342,17 @@ class ExamsTab extends StatelessWidget {
           bottom: 16,
           right: 16,
           child: FloatingActionButton.extended(
-            onPressed: () => _showExamDialog(context),
+            heroTag: 'planner_exam_fab',
+            onPressed: () {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user == null) {
+                Navigator.pushNamed(context, AppRoutes.login);
+                return;
+              }
+              _showExamDialog(context);
+            },
             label: const Text('Add Exam'),
             icon: const Icon(Icons.add),
-            backgroundColor: Colors.redAccent,
-            foregroundColor: Colors.white,
           ),
         ),
       ],
@@ -425,22 +456,17 @@ Widget _buildGradientCard(
   required VoidCallback onDelete,
   List<Widget>? trailingActions,
 }) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+
   return Container(
     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: gradientColors,
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
+      color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
       borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: gradientColors.last.withOpacity(0.4),
-          blurRadius: 8,
-          offset: const Offset(0, 4),
-        ),
-      ],
+      border: Border.all(
+        color: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+        width: 1,
+      ),
     ),
     child: Material(
       color: Colors.transparent,
@@ -457,10 +483,10 @@ Widget _buildGradientCard(
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: isDark ? Colors.grey[800] : Colors.grey[200],
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, color: Colors.white),
+                  child: Icon(icon),
                 ),
               const SizedBox(width: 16),
               Expanded(
@@ -470,7 +496,6 @@ Widget _buildGradientCard(
                     Text(
                       title,
                       style: const TextStyle(
-                        color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -479,7 +504,7 @@ Widget _buildGradientCard(
                     Text(
                       subtitle,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -489,7 +514,7 @@ Widget _buildGradientCard(
               ),
               if (trailingActions != null) ...trailingActions,
               IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.white70),
+                icon: const Icon(Icons.delete_outline),
                 onPressed: onDelete,
               ),
             ],

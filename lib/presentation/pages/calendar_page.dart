@@ -5,6 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import '../bloc/reminder_bloc.dart';
 import '../../domain/entities/reminder.dart';
+import '../../core/theme/app_theme.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../core/routes/app_routes.dart';
 
 class CalendarPage extends StatelessWidget {
   const CalendarPage({super.key});
@@ -37,7 +40,6 @@ class _CalendarViewState extends State<CalendarView> {
     List<Reminder> allReminders,
   ) {
     return allReminders.where((reminder) {
-      // Filter out routines and exams, keep only calendar/birthdays
       if (reminder.category != 'calendar') return false;
 
       if (reminder.recurrenceType == 'Yearly') {
@@ -50,12 +52,30 @@ class _CalendarViewState extends State<CalendarView> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Reminders & Birthdays')),
+      appBar: AppBar(
+        title: const Text(
+          'Reminders & Birthdays',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        elevation: 0,
+      ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showReminderDialog(context),
-        label: const Text('Add Reminder'),
-        icon: const Icon(Icons.add_alarm),
+        heroTag: 'calendar_fab',
+        onPressed: () {
+          final user = FirebaseAuth.instance.currentUser;
+          if (user == null) {
+            Navigator.pushNamed(context, AppRoutes.login);
+            return;
+          }
+          _showReminderDialog(context);
+        },
+        label: const Text('Add Birthday'),
+        icon: const Icon(Icons.cake),
+        backgroundColor: isDark ? AppTheme.white : AppTheme.black,
+        foregroundColor: isDark ? AppTheme.black : AppTheme.white,
       ),
       body: BlocBuilder<ReminderBloc, ReminderState>(
         builder: (context, state) {
@@ -71,27 +91,85 @@ class _CalendarViewState extends State<CalendarView> {
 
           return Column(
             children: [
-              TableCalendar<Reminder>(
-                firstDay: DateTime.utc(2020, 10, 16),
-                lastDay: DateTime.utc(2030, 3, 14),
-                focusedDay: _focusedDay,
-                selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                eventLoader: (day) => _getRemindersForDay(day, allReminders),
-                onDaySelected: (selectedDay, focusedDay) {
-                  setState(() {
-                    _selectedDay = selectedDay;
-                    _focusedDay = focusedDay;
-                  });
-                },
-                calendarStyle: CalendarStyle(
-                  markerDecoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
-                    shape: BoxShape.circle,
+              Container(
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? AppTheme.darkGrey : AppTheme.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+                    width: 1,
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: TableCalendar<Reminder>(
+                    firstDay: DateTime.utc(2020, 10, 16),
+                    lastDay: DateTime.utc(2030, 3, 14),
+                    focusedDay: _focusedDay,
+                    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                    eventLoader: (day) =>
+                        _getRemindersForDay(day, allReminders),
+                    onDaySelected: (selectedDay, focusedDay) {
+                      setState(() {
+                        _selectedDay = selectedDay;
+                        _focusedDay = focusedDay;
+                      });
+                    },
+                    calendarStyle: CalendarStyle(
+                      todayDecoration: BoxDecoration(
+                        color: isDark ? Colors.grey[700] : Colors.grey[300],
+                        shape: BoxShape.circle,
+                      ),
+                      selectedDecoration: BoxDecoration(
+                        color: isDark ? AppTheme.white : AppTheme.black,
+                        shape: BoxShape.circle,
+                      ),
+                      markerDecoration: BoxDecoration(
+                        color: isDark ? AppTheme.white : AppTheme.black,
+                        shape: BoxShape.circle,
+                      ),
+                      todayTextStyle: TextStyle(
+                        color: isDark ? AppTheme.white : AppTheme.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      selectedTextStyle: TextStyle(
+                        color: isDark ? AppTheme.black : AppTheme.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      weekendTextStyle: TextStyle(
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                    headerStyle: const HeaderStyle(
+                      formatButtonVisible: false,
+                      titleCentered: true,
+                      titleTextStyle: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 16.0),
-              _buildReminderList(selectedReminders),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.event, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      DateFormat.yMMMMd().format(_selectedDay!),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildReminderList(selectedReminders, isDark),
             ],
           );
         },
@@ -99,64 +177,129 @@ class _CalendarViewState extends State<CalendarView> {
     );
   }
 
-  Widget _buildReminderList(List<Reminder> reminders) {
+  Widget _buildReminderList(List<Reminder> reminders, bool isDark) {
     if (reminders.isEmpty) {
       return Expanded(
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.event, size: 48, color: Colors.grey[400]),
-              const SizedBox(height: 8),
-              Text(
-                'No reminders for this day',
-                style: TextStyle(color: Colors.grey[600]),
-              ),
-            ],
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppTheme.darkGrey : AppTheme.lightGrey,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.cake_outlined,
+                    size: 48,
+                    color: isDark ? AppTheme.white : AppTheme.black,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'No events for this day',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Tap + to add a birthday or reminder',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
     return Expanded(
       child: ListView.builder(
+        padding: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
         itemCount: reminders.length,
         itemBuilder: (context, index) {
           final reminder = reminders[index];
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: reminder.recurrenceType == 'Yearly'
-                    ? Colors.pink.shade100
-                    : Colors.blue.shade100,
-                child: Icon(
-                  reminder.recurrenceType == 'Yearly'
-                      ? Icons.cake
-                      : Icons.notifications,
-                  color: reminder.recurrenceType == 'Yearly'
-                      ? Colors.pink
-                      : Colors.blue,
-                ),
-              ),
-              title: Text(
-                reminder.title,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(
-                reminder.recurrenceType == 'Yearly'
-                    ? 'Birthday'
-                    : DateFormat.jm().format(reminder.scheduledTime),
-              ),
-              onTap: () => _showReminderDialog(context, reminder: reminder),
-              trailing: IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                onPressed: () {
-                  context.read<ReminderBloc>().add(DeleteReminder(reminder.id));
-                },
-              ),
-            ),
-          );
+          return _buildReminderCard(context, reminder, isDark);
         },
+      ),
+    );
+  }
+
+  Widget _buildReminderCard(
+    BuildContext context,
+    Reminder reminder,
+    bool isDark,
+  ) {
+    final isBirthday = reminder.recurrenceType == 'Yearly';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkGrey : AppTheme.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showReminderDialog(context, reminder: reminder),
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppTheme.white : AppTheme.black,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isBirthday ? Icons.cake : Icons.event,
+                    color: isDark ? AppTheme.black : AppTheme.white,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        reminder.title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        isBirthday
+                            ? '🎂 Birthday'
+                            : DateFormat.jm().format(reminder.scheduledTime),
+                        style: TextStyle(
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () {
+                    context.read<ReminderBloc>().add(
+                      DeleteReminder(reminder.id),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -168,30 +311,55 @@ class _CalendarViewState extends State<CalendarView> {
         final titleController = TextEditingController(
           text: reminder?.title ?? '',
         );
-        DateTime selectedDate =
-            reminder?.scheduledTime ?? _selectedDay ?? DateTime.now();
-        bool isBirthday = reminder?.isRecurring ?? false;
+        DateTime selectedDate = reminder?.scheduledTime ?? DateTime.now();
+        bool isBirthday = reminder?.isRecurring ?? true;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text(reminder == null ? 'Add Reminder' : 'Edit Reminder'),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppTheme.white : AppTheme.black,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.cake,
+                      color: isDark ? AppTheme.black : AppTheme.white,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(reminder == null ? 'Add Birthday' : 'Edit Birthday'),
+                ],
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
                     controller: titleController,
-                    decoration: const InputDecoration(
-                      labelText: 'Title (e.g. Mom\'s Birthday)',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: 'Name',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.person),
                     ),
                   ),
                   const SizedBox(height: 16),
                   SwitchListTile(
-                    title: const Text('Is this a Birthday?'),
-                    subtitle: const Text('Repeats yearly'),
+                    title: const Text('Birthday'),
+                    subtitle: const Text('Repeats every year'),
                     value: isBirthday,
                     onChanged: (val) => setState(() => isBirthday = val),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   InkWell(
@@ -207,10 +375,12 @@ class _CalendarViewState extends State<CalendarView> {
                       }
                     },
                     child: InputDecorator(
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Date',
-                        border: OutlineInputBorder(),
-                        suffixIcon: Icon(Icons.calendar_today),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        suffixIcon: const Icon(Icons.calendar_today),
                       ),
                       child: Text(DateFormat.yMMMd().format(selectedDate)),
                     ),
@@ -246,6 +416,10 @@ class _CalendarViewState extends State<CalendarView> {
                       Navigator.pop(context);
                     }
                   },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: isDark ? AppTheme.white : AppTheme.black,
+                    foregroundColor: isDark ? AppTheme.black : AppTheme.white,
+                  ),
                   child: Text(reminder == null ? 'Add' : 'Save'),
                 ),
               ],
