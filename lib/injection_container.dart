@@ -2,7 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'core/security/security_service.dart';
 import 'data/datasources/local_database.dart';
 import 'data/datasources/firestore_database.dart';
-import 'data/repositories/diary_repository_impl.dart';
+
 import 'data/repositories/diary_repository_firestore_impl.dart';
 import 'domain/repositories/diary_repository.dart';
 import 'presentation/bloc/diary_bloc.dart';
@@ -20,7 +20,7 @@ Future<void> init() async {
 
   // Repository
   sl.registerLazySingleton<DiaryRepository>(
-    () => DiaryRepositoryFirestoreImpl(sl()),
+    () => DiaryRepositoryFirestoreImpl(sl(), sl()),
   );
 
   // Data sources
@@ -32,7 +32,7 @@ Future<void> init() async {
   // Features - Reminders
   sl.registerFactory(() => ReminderBloc(repository: sl()));
   sl.registerLazySingleton<ReminderRepository>(
-    () => ReminderRepositoryImpl(sl(), sl()),
+    () => ReminderRepositoryImpl(sl(), sl(), sl()),
   );
 
   //! External

@@ -1,40 +1,71 @@
 import '../../domain/entities/diary_entry.dart';
 import '../../domain/repositories/diary_repository.dart';
 import '../datasources/firestore_database.dart';
+import '../datasources/local_database.dart';
 import '../models/diary_entry_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class DiaryRepositoryFirestoreImpl implements DiaryRepository {
   final FirestoreDatabase firestoreDatabase;
+  final LocalDatabase localDatabase;
 
-  DiaryRepositoryFirestoreImpl(this.firestoreDatabase);
+  DiaryRepositoryFirestoreImpl(this.firestoreDatabase, this.localDatabase);
 
   @override
   Future<List<DiaryEntry>> getEntries() async {
-    final models = await firestoreDatabase.getEntries();
+    // Sync from Firestore if logged in
+    if (FirebaseAuth.instance.currentUser != null) {
+      try {
+        final remoteModels = await firestoreDatabase.getEntries();
+        for (var model in remoteModels) {
+          await localDatabase.diaryBox.put(model.id, model);
+        }
+      } catch (e) {
+        // Fallback to local
+      }
+    }
+
+    final models = localDatabase.diaryBox.values.toList();
+    // Sort by date descending
+    models.sort((a, b) => b.date.compareTo(a.date));
     return models.map(_mapModelToEntity).toList();
   }
 
   @override
   Future<void> addEntry(DiaryEntry entry) async {
     final model = _mapEntityToModel(entry);
-    await firestoreDatabase.addEntry(model);
+    // Save locally
+    await localDatabase.diaryBox.put(entry.id, model);
+
+    // Sync to Firestore if logged in
+    if (FirebaseAuth.instance.currentUser != null) {
+      try {
+        await firestoreDatabase.addEntry(model);
+      } catch (e) {
+        // Handle sync error
+      }
+    }
   }
 
   @override
   Future<void> updateEntry(DiaryEntry entry) async {
-    final model = _mapEntityToModel(entry);
-    await firestoreDatabase.updateEntry(model);
+    await addEntry(entry);
   }
 
   @override
   Future<void> deleteEntry(String id) async {
-    await firestoreDatabase.deleteEntry(id);
+    await localDatabase.diaryBox.delete(id);
+    if (FirebaseAuth.instance.currentUser != null) {
+      try {
+        await firestoreDatabase.deleteEntry(id);
+      } catch (e) {
+        // Handle sync error
+      }
+    }
   }
 
   @override
   Future<List<DiaryEntry>> searchEntries(String query) async {
-    // Firestore search is limited. Ideally use Algolia or client-side filtering.
-    // implementing client-side filtering here for simplicity as the dataset might not be huge per user.
     final allEntries = await getEntries();
     return allEntries.where((e) {
       return e.title.toLowerCase().contains(query.toLowerCase()) ||

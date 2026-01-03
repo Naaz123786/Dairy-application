@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../core/theme/app_theme.dart';
 import '../../presentation/bloc/diary_bloc.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
+  @override
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -18,33 +20,274 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
   bool _isSignUp = false;
 
-  Future<void> _signInWithGoogle() async {
-    setState(() => _isLoading = true);
+  @override
+  void initState() {
+    super.initState();
+    if (kIsWeb) {
+      _checkRedirectResult();
+    }
+  }
+
+  Future<void> _checkRedirectResult() async {
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      if (googleUser != null) {
+      final userCred = await FirebaseAuth.instance.getRedirectResult();
+      if (userCred.user != null) {
+        // Reload user to get latest profile data including displayName
+        await userCred.user!.reload();
+        if (mounted) {
+          context.read<DiaryBloc>().add(LoadDiaryEntries());
+
+          // Wait a bit for auth state to update
+          await Future.delayed(const Duration(milliseconds: 100));
+
+          // Only pop if we can, otherwise let AuthWrapper handle navigation
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            // If we can't pop, navigate to home
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/',
+              (route) => false,
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Redirect Result Error: $e');
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (!mounted) return;
+
+    setState(() => _isLoading = true);
+    debugPrint('=== Starting Google Sign In ===');
+
+    try {
+      if (kIsWeb) {
+        // Use signInWithRedirect for Web to solve COOP issues
+        debugPrint('Web platform detected, using redirect');
+        final GoogleAuthProvider authProvider = GoogleAuthProvider();
+        authProvider.setCustomParameters({'prompt': 'select_account'});
+        await FirebaseAuth.instance.signInWithRedirect(authProvider);
+        return; // Execution stops here as page redirects
+      } else {
+        // Use Google Sign-In plugin for Mobile
+        debugPrint('Mobile platform detected, using Google Sign-In plugin');
+        final GoogleSignIn googleSignIn = GoogleSignIn(
+          scopes: ['email', 'profile'],
+        );
+
+        debugPrint('Opening Google Sign-In dialog...');
+        GoogleSignInAccount? googleUser;
+        try {
+          googleUser = await googleSignIn.signIn();
+          debugPrint('Google Sign-In dialog closed');
+        } catch (e) {
+          debugPrint('❌ ERROR: Google Sign-In dialog failed: $e');
+          debugPrint('Error type: ${e.runtimeType}');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Google Sign-In failed: ${e.toString()}'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          }
+          rethrow;
+        }
+
+        debugPrint(
+            'Google Sign In result: ${googleUser != null ? "Success - User selected" : "Cancelled - User cancelled"}');
+
+        // Check if user cancelled the sign-in
+        if (googleUser == null) {
+          // User cancelled the sign-in
+          debugPrint('❌ User cancelled Google Sign In');
+          if (mounted) {
+            setState(() => _isLoading = false);
+          }
+          return;
+        }
+
+        debugPrint('✅ Google User selected:');
+        debugPrint('   Email: ${googleUser.email}');
+        debugPrint('   Name: ${googleUser.displayName}');
+        debugPrint('   Photo: ${googleUser.photoUrl}');
+
+        // Get authentication details from Google
+        debugPrint('Getting authentication tokens from Google...');
         final GoogleSignInAuthentication googleAuth =
             await googleUser.authentication;
+
+        debugPrint('Tokens received:');
+        debugPrint(
+            '   AccessToken: ${googleAuth.accessToken != null ? "Present" : "NULL"}');
+        debugPrint(
+            '   IDToken: ${googleAuth.idToken != null ? "Present" : "NULL"}');
+
+        // Check if we have the required tokens
+        if (googleAuth.accessToken == null || googleAuth.idToken == null) {
+          final errorMsg = 'Failed to get authentication tokens from Google. '
+              'AccessToken: ${googleAuth.accessToken != null}, '
+              'IDToken: ${googleAuth.idToken != null}';
+          debugPrint('❌ $errorMsg');
+          throw Exception(errorMsg);
+        }
+
+        // Create credential
         final AuthCredential credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
         );
-        await FirebaseAuth.instance.signInWithCredential(credential);
+
+        // Sign in to Firebase with Google credential
+        debugPrint('🔐 Signing in to Firebase with Google credential...');
+        UserCredential userCredential;
+        try {
+          userCredential =
+              await FirebaseAuth.instance.signInWithCredential(credential);
+        } catch (e) {
+          debugPrint('❌ Firebase signInWithCredential failed: $e');
+          rethrow;
+        }
+
+        // Verify user was created/signed in
+        if (userCredential.user == null) {
+          debugPrint('❌ Firebase Sign In failed: User is null');
+          throw Exception('Failed to sign in: User is null');
+        }
+
+        debugPrint('✅ Firebase Sign In successful!');
+        debugPrint('   User ID: ${userCredential.user?.uid}');
+        debugPrint('   Email: ${userCredential.user?.email}');
+        debugPrint('   Display Name: ${userCredential.user?.displayName}');
+        debugPrint('   Photo URL: ${userCredential.user?.photoURL}');
+
+        // Reload user to get latest profile data including displayName
+        debugPrint('🔄 Reloading user data...');
+        await userCredential.user!.reload();
+
+        // Get updated user data
+        final updatedUser = FirebaseAuth.instance.currentUser;
+        debugPrint('Current user after reload:');
+        debugPrint('   Email: ${updatedUser?.email}');
+        debugPrint('   Display Name: ${updatedUser?.displayName}');
+        debugPrint('   Photo URL: ${updatedUser?.photoURL}');
+
+        if (updatedUser != null) {
+          // Update displayName and photoURL if they are null
+          if ((updatedUser.displayName == null ||
+                  updatedUser.displayName!.isEmpty) &&
+              googleUser.displayName != null) {
+            debugPrint('📝 Updating profile with Google data...');
+            await updatedUser.updateProfile(
+              displayName: googleUser.displayName,
+              photoURL: googleUser.photoUrl,
+            );
+            await updatedUser.reload();
+            debugPrint('✅ Profile updated successfully');
+            debugPrint('   New Display Name: ${updatedUser.displayName}');
+            debugPrint('   New Photo URL: ${updatedUser.photoURL}');
+          }
+        }
+
+        // Verify authentication was successful
+        final currentUser = FirebaseAuth.instance.currentUser;
+        if (currentUser == null) {
+          debugPrint('❌ Authentication failed: No current user');
+          throw Exception('Authentication failed: No current user');
+        }
+
+        debugPrint('✅✅✅ Google Sign In COMPLETE! ✅✅✅');
+        debugPrint('   Final User Email: ${currentUser.email}');
+        debugPrint('   Final Display Name: ${currentUser.displayName}');
+        debugPrint('   Final Photo URL: ${currentUser.photoURL}');
+
+        // Success - load data
         if (mounted) {
+          debugPrint('📊 Loading diary entries...');
           context.read<DiaryBloc>().add(LoadDiaryEntries());
-          Navigator.pop(context);
+
+          // Wait for auth state to propagate
+          debugPrint('⏳ Waiting for auth state to propagate...');
+          await Future.delayed(const Duration(milliseconds: 500));
+
+          // Verify user is still authenticated
+          final verifiedUser = FirebaseAuth.instance.currentUser;
+          debugPrint('🔍 Verifying user after delay...');
+          debugPrint(
+              '   Verified User: ${verifiedUser != null ? "Present" : "NULL"}');
+          debugPrint('   Verified Email: ${verifiedUser?.email}');
+
+          if (verifiedUser != null && mounted) {
+            debugPrint('✅ User verified, starting navigation...');
+
+            // Only pop if we can, otherwise navigate to home
+            if (Navigator.canPop(context)) {
+              debugPrint('🚪 Navigation: Popping current route');
+              Navigator.pop(context);
+            } else {
+              debugPrint(
+                  '🚪 Navigation: Cannot pop, using pushNamedAndRemoveUntil');
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                '/',
+                (route) => false,
+              );
+            }
+            debugPrint('✅ Navigation complete!');
+          } else {
+            debugPrint('❌ Navigation failed: User not verified after delay');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                      'Login successful but navigation failed. Please restart the app.'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+          }
         }
       }
     } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Google Sign In Failed')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      debugPrint('❌❌❌ Firebase Auth Exception ❌❌❌');
+      debugPrint('   Code: ${e.code}');
+      debugPrint('   Message: ${e.message}');
+      debugPrint('   Email: ${e.email}');
+      debugPrint('   Credential: ${e.credential}');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Firebase Error: ${e.code}\n${e.message ?? 'Google Sign In Failed'}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌❌❌ General Exception ❌❌❌');
+      debugPrint('   Error: $e');
+      debugPrint('   Type: ${e.runtimeType}');
+      debugPrint('   Stack Trace: $stackTrace');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      debugPrint('=== Google Sign In process ended ===');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -69,7 +312,20 @@ class _LoginPageState extends State<LoginPage> {
           password: _passwordController.text.trim(),
         );
       }
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        // Wait a bit for auth state to update
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        // Only pop if we can, otherwise navigate to home
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        } else {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/',
+            (route) => false,
+          );
+        }
+      }
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? 'Authentication Failed')),

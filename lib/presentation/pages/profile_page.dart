@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/theme/app_theme.dart';
 import '../bloc/theme_cubit.dart';
+import '../../core/routes/app_routes.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -23,48 +25,68 @@ class ProfilePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Profile Header
-            Center(
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.black,
-                        width: 3,
+            StreamBuilder<User?>(
+              stream: FirebaseAuth.instance.userChanges(),
+              initialData: FirebaseAuth.instance.currentUser,
+              builder: (context, snapshot) {
+                final user = snapshot.data;
+                return Center(
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.black,
+                            width: 3,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.white,
+                          backgroundImage: user?.photoURL != null
+                              ? NetworkImage(user!.photoURL!)
+                              : null,
+                          child: user?.photoURL == null
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 50,
+                                  color: Colors.cyan,
+                                )
+                              : null,
+                        ),
                       ),
-                    ),
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.white,
-                      child: const Icon(
-                        Icons.person,
-                        size: 50,
-                        color: Colors.cyan,
+                      const SizedBox(height: 16),
+                      Text(
+                        user != null
+                            ? (user.displayName != null &&
+                                    user.displayName!.isNotEmpty)
+                                ? user.displayName!
+                                : (user.email != null
+                                    ? user.email!.split('@')[0]
+                                    : 'Guest')
+                            : 'Guest',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.cyan,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 4),
+                      Text(
+                        user?.email ?? 'Sign in to sync your data',
+                        style: TextStyle(
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'User Name',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.cyan,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'user@example.com',
-                    style: TextStyle(
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
+
             const SizedBox(height: 32),
             const Text(
               'Settings',
@@ -116,6 +138,33 @@ class ProfilePage extends StatelessWidget {
               icon: Icons.privacy_tip_outlined,
               title: 'Privacy Policy',
               onTap: () {},
+            ),
+            const SizedBox(height: 24),
+            StreamBuilder<User?>(
+              stream: FirebaseAuth.instance.userChanges(),
+              initialData: FirebaseAuth.instance.currentUser,
+              builder: (context, snapshot) {
+                final user = snapshot.data;
+                if (user != null) {
+                  return _buildSimpleSettingTile(
+                    context,
+                    icon: Icons.logout,
+                    title: 'Log Out',
+                    onTap: () async {
+                      await FirebaseAuth.instance.signOut();
+                    },
+                  );
+                } else {
+                  return _buildSimpleSettingTile(
+                    context,
+                    icon: Icons.login,
+                    title: 'Log In / Sign Up',
+                    onTap: () {
+                      Navigator.pushNamed(context, AppRoutes.login);
+                    },
+                  );
+                }
+              },
             ),
             const SizedBox(height: 32),
             Center(
@@ -282,7 +331,6 @@ class ProfilePage extends StatelessWidget {
     required String title,
     required VoidCallback onTap,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(

@@ -1,6 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/security/security_service.dart';
 import '../../core/theme/app_theme.dart';
+import '../bloc/diary_bloc.dart';
+import '../bloc/reminder_bloc.dart';
 import 'planner_page.dart';
 import 'calendar_page.dart';
 import 'diary_page.dart';
@@ -19,6 +24,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   int _currentIndex = 2; // Home is default (Center)
   final SecurityService _securityService = GetIt.I<SecurityService>();
   late AnimationController _animationController;
+  late final StreamSubscription<User?> _authSubscription;
 
   final List<Widget> _pages = const [
     PlannerPage(),
@@ -35,11 +41,22 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+
+    // Listen to auth changes to refresh the entire app state
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (mounted) {
+        // Refresh BLoC data on login/logout
+        context.read<DiaryBloc>().add(LoadDiaryEntries());
+        context.read<ReminderBloc>().add(LoadReminders());
+        setState(() {});
+      }
+    });
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _authSubscription.cancel();
     super.dispose();
   }
 

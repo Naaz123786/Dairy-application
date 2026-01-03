@@ -148,6 +148,10 @@ class _DiaryPageState extends State<DiaryPage> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
+            if (FirebaseAuth.instance.currentUser == null) {
+              Navigator.pushNamed(context, AppRoutes.login);
+              return;
+            }
             Navigator.pushNamed(context, AppRoutes.diaryEdit, arguments: entry);
           },
           borderRadius: BorderRadius.circular(20),
@@ -225,8 +229,13 @@ class _DiaryPageState extends State<DiaryPage> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit, size: 20),
+                      icon:
+                          const Icon(Icons.edit, size: 20, color: Colors.blue),
                       onPressed: () {
+                        if (FirebaseAuth.instance.currentUser == null) {
+                          Navigator.pushNamed(context, AppRoutes.login);
+                          return;
+                        }
                         Navigator.pushNamed(
                           context,
                           AppRoutes.diaryEdit,
@@ -235,8 +244,15 @@ class _DiaryPageState extends State<DiaryPage> {
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 20),
-                      onPressed: () => _showDeleteDialog(context, entry),
+                      icon: const Icon(Icons.delete_outline,
+                          size: 20, color: Colors.red),
+                      onPressed: () {
+                        if (FirebaseAuth.instance.currentUser == null) {
+                          Navigator.pushNamed(context, AppRoutes.login);
+                          return;
+                        }
+                        _showDeleteDialog(context, entry);
+                      },
                     ),
                   ],
                 ),

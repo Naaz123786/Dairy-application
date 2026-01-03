@@ -1,17 +1,37 @@
 import '../../domain/entities/reminder.dart';
 import '../../domain/repositories/reminder_repository.dart';
 import '../datasources/local_database.dart';
+import '../datasources/firestore_database.dart';
 import '../models/reminder_model.dart';
 import '../../core/services/notification_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ReminderRepositoryImpl implements ReminderRepository {
   final LocalDatabase localDatabase;
+  final FirestoreDatabase firestoreDatabase;
   final NotificationService notificationService;
 
-  ReminderRepositoryImpl(this.localDatabase, this.notificationService);
+  ReminderRepositoryImpl(
+    this.localDatabase,
+    this.firestoreDatabase,
+    this.notificationService,
+  );
 
   @override
   Future<List<Reminder>> getReminders() async {
+    // If logged in, fetch from Firestore to ensure sync
+    // For simplicity, we refresh local cache with firestore data
+    if (FirebaseAuth.instance.currentUser != null) {
+      try {
+        final remoteModels = await firestoreDatabase.getReminders();
+        for (var model in remoteModels) {
+          await localDatabase.remindersBox.put(model.id, model);
+        }
+      } catch (e) {
+        // Fallback to local if firestore fails
+      }
+    }
+
     final models = localDatabase.remindersBox.values.toList();
     return models.map(_mapModelToEntity).toList();
   }
@@ -19,7 +39,18 @@ class ReminderRepositoryImpl implements ReminderRepository {
   @override
   Future<void> addReminder(Reminder reminder) async {
     final model = _mapEntityToModel(reminder);
+
+    // Save locally
     await localDatabase.remindersBox.put(reminder.id, model);
+
+    // Sync to Firestore if logged in
+    if (FirebaseAuth.instance.currentUser != null) {
+      try {
+        await firestoreDatabase.addReminder(model);
+      } catch (e) {
+        // Handle error or queue for later sync
+      }
+    }
 
     // Schedule Notification
     // We use hashcode of ID for notification ID (simple approach) or random int
@@ -64,7 +95,13 @@ class ReminderRepositoryImpl implements ReminderRepository {
   @override
   Future<void> deleteReminder(String id) async {
     await localDatabase.remindersBox.delete(id);
-    // TODO: Cancel notification if possible (requires tracking IDs)
+    if (FirebaseAuth.instance.currentUser != null) {
+      try {
+        await firestoreDatabase.deleteReminder(id);
+      } catch (e) {
+        // Handle sync error
+      }
+    }
   }
 
   Reminder _mapModelToEntity(ReminderModel model) {

@@ -5,6 +5,7 @@ import 'dart:math';
 import '../../core/theme/app_theme.dart';
 import '../bloc/diary_bloc.dart';
 import '../bloc/reminder_bloc.dart';
+import '../../domain/entities/reminder.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/routes/app_routes.dart';
 
@@ -45,6 +46,8 @@ class HomeDashboardPage extends StatelessWidget {
             const SizedBox(height: 16),
             _buildStatsRow(isDark),
             const SizedBox(height: 32),
+            _buildBirthdaySection(isDark),
+            const SizedBox(height: 32),
             const Text(
               'Quick Actions',
               style: TextStyle(
@@ -60,7 +63,7 @@ class HomeDashboardPage extends StatelessWidget {
               'Write a Diary Entry',
               'Capture your thoughts',
               Icons.edit_note,
-              '/diary/edit',
+              AppRoutes.diaryEdit,
             ),
             const SizedBox(height: 12),
             _buildQuickActionCard(
@@ -69,7 +72,7 @@ class HomeDashboardPage extends StatelessWidget {
               'Add a Routine',
               'Build better habits',
               Icons.schedule,
-              null,
+              AppRoutes.planner,
             ),
             const SizedBox(height: 12),
             _buildQuickActionCard(
@@ -78,12 +81,103 @@ class HomeDashboardPage extends StatelessWidget {
               'Add Birthday',
               'Never forget special days',
               Icons.cake,
-              null,
+              AppRoutes.calendar,
             ),
             const SizedBox(height: 80),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildBirthdaySection(bool isDark) {
+    return BlocBuilder<ReminderBloc, ReminderState>(
+      builder: (context, state) {
+        List<Reminder> birthdays = [];
+        if (state is ReminderLoaded) {
+          birthdays = state.reminders
+              .where((r) =>
+                  r.category == 'birthday' ||
+                  r.recurrenceType == 'Yearly' ||
+                  r.isRecurring ||
+                  r.title.toLowerCase().contains('birthday'))
+              .toList()
+            ..sort((a, b) {
+              // Simple sort by day/month for upcoming
+              final now = DateTime.now();
+              final aDate = DateTime(
+                  now.year, a.scheduledTime.month, a.scheduledTime.day);
+              final bDate = DateTime(
+                  now.year, b.scheduledTime.month, b.scheduledTime.day);
+              return aDate.compareTo(bDate);
+            });
+        }
+
+        if (birthdays.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Upcoming Birthdays',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.cyan,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: min(3, birthdays.length),
+              itemBuilder: (context, index) {
+                final bd = birthdays[index];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppTheme.darkGrey : AppTheme.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.cyan.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.cake, color: Colors.cyan),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              bd.title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              DateFormat('MMMM d').format(bd.scheduledTime),
+                              style: TextStyle(
+                                color: isDark
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -112,7 +206,9 @@ class HomeDashboardPage extends StatelessWidget {
                   .where(
                     (r) =>
                         r.category == 'birthday' ||
-                        r.recurrenceType == 'Yearly',
+                        r.recurrenceType == 'Yearly' ||
+                        r.isRecurring ||
+                        r.title.toLowerCase().contains('birthday'),
                   )
                   .length;
             }
@@ -181,32 +277,45 @@ class HomeDashboardPage extends StatelessWidget {
       greeting = 'Good Evening';
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [Colors.cyan, Colors.lightBlueAccent],
-          ).createShader(bounds),
-          child: Text(
-            greeting,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              letterSpacing: -0.5,
-              color: Colors.white, // Required for ShaderMask
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.userChanges(),
+      initialData: FirebaseAuth.instance.currentUser,
+      builder: (context, snapshot) {
+        final user = snapshot.data;
+        final name = user != null
+            ? (user.displayName != null && user.displayName!.isNotEmpty)
+                ? user.displayName!.split(' ')[0]
+                : (user.email != null ? user.email!.split('@')[0] : 'Guest')
+            : 'Guest';
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                colors: [Colors.cyan, Colors.lightBlueAccent],
+              ).createShader(bounds),
+              child: Text(
+                '$greeting, $name',
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                  color: Colors.white,
+                ),
+              ),
             ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          DateFormat.yMMMMEEEEd().format(DateTime.now()),
-          style: TextStyle(
-            fontSize: 15,
-            color: isDark ? Colors.grey[400] : Colors.grey[600],
-          ),
-        ),
-      ],
+            const SizedBox(height: 8),
+            Text(
+              DateFormat.yMMMMEEEEd().format(DateTime.now()),
+              style: TextStyle(
+                fontSize: 15,
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

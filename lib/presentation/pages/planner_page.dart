@@ -87,17 +87,32 @@ class RoutineTab extends StatelessWidget {
                       const Color(0xFF6A11CB),
                       const Color(0xFF2575FC),
                     ],
-                    onTap: () => _showRoutineDialog(context, reminder: routine),
+                    onTap: () {
+                      if (FirebaseAuth.instance.currentUser == null) {
+                        Navigator.pushNamed(context, AppRoutes.login);
+                        return;
+                      }
+                      _showRoutineDialog(context, reminder: routine);
+                    },
                     onDelete: () {
+                      if (FirebaseAuth.instance.currentUser == null) {
+                        Navigator.pushNamed(context, AppRoutes.login);
+                        return;
+                      }
                       context.read<ReminderBloc>().add(
                             DeleteReminder(routine.id),
                           );
                     },
                     trailingActions: [
                       IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.white70),
-                        onPressed: () =>
-                            _showRoutineDialog(context, reminder: routine),
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        onPressed: () {
+                          if (FirebaseAuth.instance.currentUser == null) {
+                            Navigator.pushNamed(context, AppRoutes.login);
+                            return;
+                          }
+                          _showRoutineDialog(context, reminder: routine);
+                        },
                       ),
                     ],
                   );
@@ -315,15 +330,30 @@ class ExamsTab extends StatelessWidget {
                       ),
                     ),
                     gradientColors: gradientColors,
-                    onTap: () => _showExamDialog(context, reminder: exam),
+                    onTap: () {
+                      if (FirebaseAuth.instance.currentUser == null) {
+                        Navigator.pushNamed(context, AppRoutes.login);
+                        return;
+                      }
+                      _showExamDialog(context, reminder: exam);
+                    },
                     onDelete: () {
+                      if (FirebaseAuth.instance.currentUser == null) {
+                        Navigator.pushNamed(context, AppRoutes.login);
+                        return;
+                      }
                       context.read<ReminderBloc>().add(DeleteReminder(exam.id));
                     },
                     trailingActions: [
                       IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.white70),
-                        onPressed: () =>
-                            _showExamDialog(context, reminder: exam),
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        onPressed: () {
+                          if (FirebaseAuth.instance.currentUser == null) {
+                            Navigator.pushNamed(context, AppRoutes.login);
+                            return;
+                          }
+                          _showExamDialog(context, reminder: exam);
+                        },
                       ),
                     ],
                   );
@@ -511,7 +541,7 @@ Widget _buildGradientCard(
               ),
               if (trailingActions != null) ...trailingActions,
               IconButton(
-                icon: const Icon(Icons.delete_outline),
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
                 onPressed: onDelete,
               ),
             ],

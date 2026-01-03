@@ -9,8 +9,9 @@ import 'presentation/bloc/diary_bloc.dart';
 import 'presentation/bloc/reminder_bloc.dart';
 import 'presentation/bloc/theme_cubit.dart';
 
-import 'package:firebase_core/firebase_core.dart';
+import 'presentation/pages/main_page.dart';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -54,7 +55,7 @@ class MyApp extends StatelessWidget {
             darkTheme: AppTheme.darkTheme,
             themeMode: themeMode,
             onGenerateRoute: AppRoutes.onGenerateRoute,
-            initialRoute: AppRoutes.home,
+            home: const MainPage(),
           );
         },
       ),

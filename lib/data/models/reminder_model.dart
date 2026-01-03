@@ -34,4 +34,28 @@ class ReminderModel extends HiveObject {
     this.isCompleted = false,
     this.category = 'calendar',
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'scheduledTime': scheduledTime.toIso8601String(),
+      'isRecurring': isRecurring,
+      'recurrenceType': recurrenceType,
+      'isCompleted': isCompleted,
+      'category': category,
+    };
+  }
+
+  factory ReminderModel.fromMap(Map<String, dynamic> map, String docId) {
+    return ReminderModel(
+      id: docId,
+      title: map['title'] ?? '',
+      scheduledTime: DateTime.parse(map['scheduledTime']),
+      isRecurring: map['isRecurring'] ?? false,
+      recurrenceType: map['recurrenceType'] ?? 'None',
+      isCompleted: map['isCompleted'] ?? false,
+      category: map['category'] ?? 'calendar',
+    );
+  }
 }

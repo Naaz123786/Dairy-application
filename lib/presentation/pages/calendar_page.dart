@@ -40,7 +40,9 @@ class _CalendarViewState extends State<CalendarView> {
     List<Reminder> allReminders,
   ) {
     return allReminders.where((reminder) {
-      if (reminder.category != 'calendar') return false;
+      if (reminder.category != 'calendar' && reminder.category != 'birthday') {
+        return false;
+      }
 
       if (reminder.recurrenceType == 'Yearly') {
         return reminder.scheduledTime.month == day.month &&
@@ -196,10 +198,10 @@ class _CalendarViewState extends State<CalendarView> {
                     color: isDark ? AppTheme.darkGrey : AppTheme.lightGrey,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.cake_outlined,
                     size: 48,
-                    color: isDark ? AppTheme.white : AppTheme.black,
+                    color: Colors.cyan,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -235,7 +237,10 @@ class _CalendarViewState extends State<CalendarView> {
     Reminder reminder,
     bool isDark,
   ) {
-    final isBirthday = reminder.recurrenceType == 'Yearly';
+    final isBirthday = reminder.category == 'birthday' ||
+        reminder.isRecurring ||
+        reminder.recurrenceType == 'Yearly' ||
+        reminder.title.toLowerCase().contains('birthday');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -252,7 +257,13 @@ class _CalendarViewState extends State<CalendarView> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _showReminderDialog(context, reminder: reminder),
+          onTap: () {
+            if (FirebaseAuth.instance.currentUser == null) {
+              Navigator.pushNamed(context, AppRoutes.login);
+              return;
+            }
+            _showReminderDialog(context, reminder: reminder);
+          },
           borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -266,7 +277,9 @@ class _CalendarViewState extends State<CalendarView> {
                   ),
                   child: Icon(
                     isBirthday ? Icons.cake : Icons.event,
-                    color: isDark ? AppTheme.black : AppTheme.white,
+                    color: isBirthday
+                        ? Colors.cyan
+                        : (isDark ? AppTheme.black : AppTheme.white),
                     size: 28,
                   ),
                 ),
@@ -296,8 +309,22 @@ class _CalendarViewState extends State<CalendarView> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline),
+                  icon: const Icon(Icons.edit_outlined, color: Colors.blue),
                   onPressed: () {
+                    if (FirebaseAuth.instance.currentUser == null) {
+                      Navigator.pushNamed(context, AppRoutes.login);
+                      return;
+                    }
+                    _showReminderDialog(context, reminder: reminder);
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  onPressed: () {
+                    if (FirebaseAuth.instance.currentUser == null) {
+                      Navigator.pushNamed(context, AppRoutes.login);
+                      return;
+                    }
                     context.read<ReminderBloc>().add(
                           DeleteReminder(reminder.id),
                         );
@@ -336,9 +363,9 @@ class _CalendarViewState extends State<CalendarView> {
                       color: isDark ? AppTheme.white : AppTheme.black,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.cake,
-                      color: isDark ? AppTheme.black : AppTheme.white,
+                      color: Colors.cyan,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -352,6 +379,7 @@ class _CalendarViewState extends State<CalendarView> {
                     controller: titleController,
                     decoration: InputDecoration(
                       labelText: 'Name',
+                      hintText: "e.g. Naaz",
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -359,14 +387,31 @@ class _CalendarViewState extends State<CalendarView> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  SwitchListTile(
-                    title: const Text('Birthday'),
-                    subtitle: const Text('Repeats every year'),
-                    value: isBirthday,
-                    onChanged: (val) => setState(() => isBirthday = val),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                  const Text('Event Type',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('🎂 Birthday'),
+                          selected: isBirthday,
+                          onSelected: (val) =>
+                              setState(() => isBirthday = true),
+                          selectedColor: Colors.cyan.withOpacity(0.2),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('🔔 Reminder'),
+                          selected: !isBirthday,
+                          onSelected: (val) =>
+                              setState(() => isBirthday = false),
+                          selectedColor: Colors.cyan.withOpacity(0.2),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   InkWell(
@@ -408,7 +453,7 @@ class _CalendarViewState extends State<CalendarView> {
                         scheduledTime: selectedDate,
                         isRecurring: isBirthday,
                         recurrenceType: isBirthday ? 'Yearly' : 'None',
-                        category: 'calendar',
+                        category: isBirthday ? 'birthday' : 'calendar',
                       );
 
                       if (reminder == null) {
