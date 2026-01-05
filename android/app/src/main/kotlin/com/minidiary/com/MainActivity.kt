@@ -1,4 +1,4 @@
-package com.diaryapp.diary_app
+package com.minidiary.com
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 
