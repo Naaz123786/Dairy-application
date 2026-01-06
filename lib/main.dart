@@ -9,10 +9,9 @@ import 'presentation/bloc/diary_bloc.dart';
 import 'presentation/bloc/reminder_bloc.dart';
 import 'presentation/bloc/theme_cubit.dart';
 
-import 'presentation/pages/main_page.dart';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'data/datasources/local_database.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,11 +27,17 @@ void main() async {
 
   await Hive.initFlutter();
   await di.init();
-  runApp(const MyApp());
+
+  final localDb = di.sl<LocalDatabase>();
+  final initialRoute =
+      localDb.isOnboardingComplete() ? AppRoutes.home : AppRoutes.onboarding;
+
+  runApp(MyApp(initialRoute: initialRoute));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String initialRoute;
+  const MyApp({super.key, required this.initialRoute});
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +60,7 @@ class MyApp extends StatelessWidget {
             darkTheme: AppTheme.darkTheme,
             themeMode: themeMode,
             onGenerateRoute: AppRoutes.onGenerateRoute,
-            home: const MainPage(),
+            initialRoute: initialRoute,
           );
         },
       ),

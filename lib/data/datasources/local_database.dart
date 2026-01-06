@@ -7,15 +7,19 @@ import '../models/reminder_model.dart';
 class LocalDatabase {
   static const String _diaryBoxName = 'diary';
   static const String _remindersBoxName = 'reminders';
+  static const String _settingsBoxName = 'settings';
+  static const String _onboardingCompleteKey = 'onboarding_complete';
   static const String _keyStorageKey = 'hive_encryption_key';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   Box<DiaryEntryModel>? _diaryBox;
   Box<ReminderModel>? _remindersBox;
+  Box? _settingsBox;
 
   Box<DiaryEntryModel> get diaryBox => _diaryBox!;
   Box<ReminderModel> get remindersBox => _remindersBox!;
+  Box get settingsBox => _settingsBox!;
 
   Future<void> init() async {
     // Register Adapters
@@ -42,5 +46,15 @@ class LocalDatabase {
     );
 
     _remindersBox = await Hive.openBox<ReminderModel>(_remindersBoxName);
+    _settingsBox = await Hive.openBox(_settingsBoxName);
+  }
+
+  bool isOnboardingComplete() {
+    return _settingsBox?.get(_onboardingCompleteKey, defaultValue: false) ??
+        false;
+  }
+
+  Future<void> setOnboardingComplete() async {
+    await _settingsBox?.put(_onboardingCompleteKey, true);
   }
 }
