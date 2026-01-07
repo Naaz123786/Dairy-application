@@ -57,4 +57,10 @@ class LocalDatabase {
   Future<void> setOnboardingComplete() async {
     await _settingsBox?.put(_onboardingCompleteKey, true);
   }
+
+  Future<void> clearAllData() async {
+    await _diaryBox?.clear();
+    await _remindersBox?.clear();
+    // We don't clear settingsBox to keep onboarding status and theme
+  }
 }

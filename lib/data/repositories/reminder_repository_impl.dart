@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import '../../domain/entities/reminder.dart';
 import '../../domain/repositories/reminder_repository.dart';
 import '../datasources/local_database.dart';
@@ -20,15 +21,15 @@ class ReminderRepositoryImpl implements ReminderRepository {
   @override
   Future<List<Reminder>> getReminders() async {
     // If logged in, fetch from Firestore to ensure sync
-    // For simplicity, we refresh local cache with firestore data
-    if (FirebaseAuth.instance.currentUser != null) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
       try {
         final remoteModels = await firestoreDatabase.getReminders();
         for (var model in remoteModels) {
           await localDatabase.remindersBox.put(model.id, model);
         }
       } catch (e) {
-        // Fallback to local if firestore fails
+        debugPrint('Reminder Sync Error: $e');
       }
     }
 

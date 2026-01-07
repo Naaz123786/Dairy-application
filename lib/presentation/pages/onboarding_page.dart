@@ -231,6 +231,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () =>
+                        Navigator.pushNamed(context, AppRoutes.privacy),
+                    child: Text(
+                      'Privacy Policy',
+                      style: TextStyle(
+                        color: primaryColor.withOpacity(0.3),
+                        fontSize: 11,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

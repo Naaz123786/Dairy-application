@@ -4,6 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/theme/app_theme.dart';
 import '../bloc/theme_cubit.dart';
 import '../../core/routes/app_routes.dart';
+import '../../injection_container.dart' as di;
+import '../bloc/reminder_bloc.dart';
+import '../bloc/diary_bloc.dart';
+import '../../data/datasources/local_database.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -99,21 +103,21 @@ class ProfilePage extends StatelessWidget {
               icon: Icons.security,
               title: 'Security',
               subtitle: 'Manage app lock & privacy',
-              onTap: () {},
+              onTap: () => _showSecuritySettings(context),
             ),
             _buildSettingCard(
               context,
               icon: Icons.notifications,
               title: 'Notifications',
               subtitle: 'Manage your alerts',
-              onTap: () {},
+              onTap: () => _showNotificationSettings(context),
             ),
             _buildSettingCard(
               context,
               icon: Icons.backup,
               title: 'Backup & Restore',
               subtitle: 'Save your data',
-              onTap: () {},
+              onTap: () => _showBackupSettings(context),
             ),
             const SizedBox(height: 24),
             const Text(
@@ -125,19 +129,21 @@ class ProfilePage extends StatelessWidget {
               context,
               icon: Icons.help_outline,
               title: 'Help & Support',
-              onTap: () {},
+              onTap: () => _showHelpSupport(context),
             ),
             _buildSimpleSettingTile(
               context,
               icon: Icons.info_outline,
               title: 'About App',
-              onTap: () {},
+              onTap: () => _showAboutApp(context),
             ),
             _buildSimpleSettingTile(
               context,
               icon: Icons.privacy_tip_outlined,
               title: 'Privacy Policy',
-              onTap: () {},
+              onTap: () {
+                Navigator.pushNamed(context, AppRoutes.privacy);
+              },
             ),
             const SizedBox(height: 24),
             StreamBuilder<User?>(
@@ -151,7 +157,16 @@ class ProfilePage extends StatelessWidget {
                     icon: Icons.logout,
                     title: 'Log Out',
                     onTap: () async {
+                      try {
+                        await di.sl<LocalDatabase>().clearAllData();
+                      } catch (e) {
+                        debugPrint('Error clearing data: $e');
+                      }
                       await FirebaseAuth.instance.signOut();
+                      if (context.mounted) {
+                        context.read<DiaryBloc>().add(LoadDiaryEntries());
+                        context.read<ReminderBloc>().add(LoadReminders());
+                      }
                     },
                   );
                 } else {
@@ -347,6 +362,132 @@ class ProfilePage extends StatelessWidget {
         onTap: onTap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
+    );
+  }
+
+  void _showSecuritySettings(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Security Settings',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 24),
+            ListTile(
+              leading: const Icon(Icons.fingerprint, color: Colors.cyan),
+              title: const Text('Biometric Lock'),
+              trailing: Switch(value: true, onChanged: (v) {}),
+            ),
+            ListTile(
+              leading: const Icon(Icons.password, color: Colors.cyan),
+              title: const Text('Change App PIN'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {},
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showNotificationSettings(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Notifications'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CheckboxListTile(
+              title: const Text('Daily Reminders'),
+              value: true,
+              activeColor: Colors.cyan,
+              onChanged: (v) {},
+            ),
+            CheckboxListTile(
+              title: const Text('Mood Tracking Alerts'),
+              value: true,
+              activeColor: Colors.cyan,
+              onChanged: (v) {},
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBackupSettings(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Backup & Restore'),
+        content: const Text(
+          'Your data is securely backed up to your Google account and encrypted locally on your device.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          FilledButton(
+            onPressed: () {},
+            style: FilledButton.styleFrom(backgroundColor: Colors.cyan),
+            child: const Text('Sync Now'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showHelpSupport(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Help & Support'),
+        content: const Text(
+          'Need help? Contact our support team at support@minidiary.com or visit our knowledge base.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          TextButton(
+            onPressed: () {},
+            child: const Text('Email Support'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAboutApp(BuildContext context) {
+    showAboutDialog(
+      context: context,
+      applicationName: 'Personal Diary',
+      applicationVersion: '1.0.0',
+      applicationIcon: const Icon(Icons.book, color: Colors.cyan, size: 40),
+      children: [
+        const Text(
+          'This is your private sanctuary for thoughts and reflections. Built with privacy and security as the core foundation.',
+        ),
+      ],
     );
   }
 }

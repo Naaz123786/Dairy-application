@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../core/theme/app_theme.dart';
 import '../../presentation/bloc/diary_bloc.dart';
+import '../../presentation/bloc/reminder_bloc.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -313,6 +314,10 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
       if (mounted) {
+        // Trigger data load immediately
+        context.read<DiaryBloc>().add(LoadDiaryEntries());
+        context.read<ReminderBloc>().add(LoadReminders());
+
         // Wait a bit for auth state to update
         await Future.delayed(const Duration(milliseconds: 100));
 

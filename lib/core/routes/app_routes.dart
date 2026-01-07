@@ -9,6 +9,7 @@ import '../../domain/entities/diary_entry.dart';
 
 import '../../presentation/pages/login_page.dart';
 import '../../presentation/pages/onboarding_page.dart';
+import '../../presentation/pages/privacy_policy_page.dart';
 
 class AppRoutes {
   static const String home = '/';
@@ -19,6 +20,7 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String login = '/login';
   static const String onboarding = '/onboarding';
+  static const String privacy = '/privacy';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -37,6 +39,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const LoginPage());
       case onboarding:
         return MaterialPageRoute(builder: (_) => const OnboardingPage());
+      case privacy:
+        return MaterialPageRoute(builder: (_) => const PrivacyPolicyPage());
       default:
         return MaterialPageRoute(
           builder: (_) =>

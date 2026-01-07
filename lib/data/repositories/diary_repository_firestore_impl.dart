@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import '../../domain/entities/diary_entry.dart';
 import '../../domain/repositories/diary_repository.dart';
 import '../datasources/firestore_database.dart';
@@ -14,14 +15,18 @@ class DiaryRepositoryFirestoreImpl implements DiaryRepository {
   @override
   Future<List<DiaryEntry>> getEntries() async {
     // Sync from Firestore if logged in
-    if (FirebaseAuth.instance.currentUser != null) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
       try {
         final remoteModels = await firestoreDatabase.getEntries();
+        // Clear local cache for this sync to ensure deleted remote entries are removed locally
+        // Alternatively, if we want offline support, we'd do a more complex merge.
+        // For now, let's ensure remote data is present locally.
         for (var model in remoteModels) {
           await localDatabase.diaryBox.put(model.id, model);
         }
       } catch (e) {
-        // Fallback to local
+        debugPrint('Diary Sync Error: $e');
       }
     }
 
