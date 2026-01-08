@@ -346,7 +346,8 @@ class _CalendarViewState extends State<CalendarView> {
           text: reminder?.title ?? '',
         );
         DateTime selectedDate = reminder?.scheduledTime ?? DateTime.now();
-        bool isBirthday = reminder?.isRecurring ?? true;
+        bool isBirthday = reminder?.category == 'birthday' || reminder == null;
+        bool isYearlyRepeat = reminder?.isRecurring ?? true;
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return StatefulBuilder(
@@ -419,7 +420,7 @@ class _CalendarViewState extends State<CalendarView> {
                       final picked = await showDatePicker(
                         context: context,
                         initialDate: selectedDate,
-                        firstDate: DateTime(2000),
+                        firstDate: DateTime(1900),
                         lastDate: DateTime(2100),
                       );
                       if (picked != null) {
@@ -437,6 +438,16 @@ class _CalendarViewState extends State<CalendarView> {
                       child: Text(DateFormat.yMMMd().format(selectedDate)),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  if (isBirthday)
+                    SwitchListTile(
+                      title: const Text('Repeat Yearly'),
+                      subtitle: const Text('Notify every year on this date'),
+                      value: isYearlyRepeat,
+                      activeColor: Colors.cyan,
+                      onChanged: (val) => setState(() => isYearlyRepeat = val),
+                      contentPadding: EdgeInsets.zero,
+                    ),
                 ],
               ),
               actions: [
@@ -451,8 +462,9 @@ class _CalendarViewState extends State<CalendarView> {
                         id: reminder?.id ?? const Uuid().v4(),
                         title: titleController.text,
                         scheduledTime: selectedDate,
-                        isRecurring: isBirthday,
-                        recurrenceType: isBirthday ? 'Yearly' : 'None',
+                        isRecurring: isBirthday && isYearlyRepeat,
+                        recurrenceType:
+                            (isBirthday && isYearlyRepeat) ? 'Yearly' : 'None',
                         category: isBirthday ? 'birthday' : 'calendar',
                       );
 

@@ -33,6 +33,24 @@ class ReminderRepositoryImpl implements ReminderRepository {
       }
     }
 
+    final now = DateTime.now();
+    final List<String> toDelete = [];
+
+    // Auto-cleanup: remove non-recurring reminders older than 24 hours
+    for (var key in localDatabase.remindersBox.keys) {
+      final model = localDatabase.remindersBox.get(key);
+      if (model != null && !model.isRecurring) {
+        if (now.difference(model.scheduledTime).inHours >= 24) {
+          toDelete.add(model.id);
+        }
+      }
+    }
+
+    // Perform deletion
+    for (var id in toDelete) {
+      await deleteReminder(id);
+    }
+
     final models = localDatabase.remindersBox.values.toList();
     return models.map(_mapModelToEntity).toList();
   }
@@ -71,11 +89,12 @@ class ReminderRepositoryImpl implements ReminderRepository {
         body: 'Your exam is coming up!',
         scheduledDate: reminder.scheduledTime,
       );
-    } else if (reminder.recurrenceType == 'Yearly') {
+    } else if (reminder.category == 'birthday') {
       await notificationService.scheduleBirthdayNotification(
         id: notificationId,
         name: reminder.title,
         birthdayDate: reminder.scheduledTime,
+        isYearly: reminder.isRecurring,
       );
     } else {
       await notificationService.scheduleNotification(

@@ -11,7 +11,6 @@ class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
-  @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
@@ -20,6 +19,7 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _isSignUp = false;
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -387,8 +387,21 @@ class _LoginPageState extends State<LoginPage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                      color: primaryColor.withOpacity(0.6),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
                 ),
-                obscureText: true,
+                obscureText: _obscurePassword,
               ),
               const SizedBox(height: 24),
               if (_isLoading)
