@@ -10,6 +10,7 @@ class LocalDatabase {
   static const String _settingsBoxName = 'settings';
   static const String _onboardingCompleteKey = 'onboarding_complete';
   static const String _diaryPinKey = 'diary_pin';
+  static const String _themeModeKey = 'theme_mode';
   static const String _keyStorageKey = 'hive_encryption_key';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
@@ -69,6 +70,14 @@ class LocalDatabase {
 
   Future<void> setDiaryPin(String pin) async {
     await _settingsBox?.put(_diaryPinKey, pin);
+  }
+
+  String getThemeMode() {
+    return _settingsBox?.get(_themeModeKey, defaultValue: 'light') ?? 'light';
+  }
+
+  Future<void> setThemeMode(String mode) async {
+    await _settingsBox?.put(_themeModeKey, mode);
   }
 
   Future<void> clearAllData() async {

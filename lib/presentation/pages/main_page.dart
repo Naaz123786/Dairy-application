@@ -26,13 +26,13 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   late AnimationController _animationController;
   late final StreamSubscription<User?> _authSubscription;
 
-  final List<Widget> _pages = const [
-    PlannerPage(),
-    CalendarPage(),
-    HomeDashboardPage(),
-    DiaryPage(),
-    ProfilePage(),
-  ];
+  List<Widget> get _pages => [
+        const PlannerPage(),
+        const CalendarPage(),
+        const HomeDashboardPage(),
+        DiaryPage(isActive: _currentIndex == 3),
+        const ProfilePage(),
+      ];
 
   @override
   void initState() {

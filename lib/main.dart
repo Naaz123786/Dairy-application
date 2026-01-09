@@ -49,7 +49,9 @@ class MyApp extends StatelessWidget {
         BlocProvider<ReminderBloc>(
           create: (_) => di.sl<ReminderBloc>()..add(LoadReminders()),
         ),
-        BlocProvider<ThemeCubit>(create: (_) => ThemeCubit()),
+        BlocProvider<ThemeCubit>(
+          create: (_) => ThemeCubit(di.sl<LocalDatabase>()),
+        ),
       ],
       child: BlocBuilder<ThemeCubit, ThemeMode>(
         builder: (context, themeMode) {

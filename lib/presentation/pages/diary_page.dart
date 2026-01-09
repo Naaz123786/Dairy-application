@@ -11,7 +11,8 @@ import '../widgets/pin_lock_view.dart';
 import '../../injection_container.dart' as di;
 
 class DiaryPage extends StatefulWidget {
-  const DiaryPage({super.key});
+  final bool isActive;
+  const DiaryPage({super.key, this.isActive = true});
 
   @override
   State<DiaryPage> createState() => _DiaryPageState();
@@ -28,6 +29,18 @@ class _DiaryPageState extends State<DiaryPage> {
     _localDb = di.sl<LocalDatabase>();
     _isUnlocked = !_localDb.hasDiaryPin();
     context.read<DiaryBloc>().add(LoadDiaryEntries());
+  }
+
+  @override
+  void didUpdateWidget(covariant DiaryPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Auto-lock when switching back to Diary tab if a PIN exists
+    if (widget.isActive && !oldWidget.isActive && _localDb.hasDiaryPin()) {
+      setState(() {
+        _isUnlocked = false;
+        _isSettingUp = false;
+      });
+    }
   }
 
   @override
