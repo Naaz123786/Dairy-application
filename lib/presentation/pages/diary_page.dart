@@ -6,6 +6,9 @@ import '../../domain/entities/diary_entry.dart';
 import '../bloc/diary_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../data/datasources/local_database.dart';
+import '../widgets/pin_lock_view.dart';
+import '../../injection_container.dart' as di;
 
 class DiaryPage extends StatefulWidget {
   const DiaryPage({super.key});
@@ -15,9 +18,15 @@ class DiaryPage extends StatefulWidget {
 }
 
 class _DiaryPageState extends State<DiaryPage> {
+  bool _isUnlocked = false;
+  bool _isSettingUp = false;
+  late final LocalDatabase _localDb;
+
   @override
   void initState() {
     super.initState();
+    _localDb = di.sl<LocalDatabase>();
+    _isUnlocked = !_localDb.hasDiaryPin();
     context.read<DiaryBloc>().add(LoadDiaryEntries());
   }
 
@@ -36,98 +45,139 @@ class _DiaryPageState extends State<DiaryPage> {
         ),
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              // TODO: Implement search
-            },
-          ),
+          if (_isUnlocked && !_isSettingUp) ...[
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () {
+                // TODO: Implement search
+              },
+            ),
+            IconButton(
+              icon: Icon(
+                  _localDb.hasDiaryPin() ? Icons.lock_outline : Icons.security),
+              onPressed: () {
+                if (_localDb.hasDiaryPin()) {
+                  setState(() => _isUnlocked = false);
+                } else {
+                  setState(() => _isSettingUp = true);
+                }
+              },
+            ),
+          ] else if (_isSettingUp)
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () {
+                setState(() => _isSettingUp = false);
+              },
+            ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'diary_fab',
-        onPressed: () {
-          final user = FirebaseAuth.instance.currentUser;
-          if (user == null) {
-            Navigator.pushNamed(context, AppRoutes.login);
-            return;
-          }
-          Navigator.pushNamed(context, AppRoutes.diaryEdit);
-        },
-        label: const Text('Write'),
-        icon: const Icon(Icons.create),
-      ),
-      body: BlocBuilder<DiaryBloc, DiaryState>(
-        builder: (context, state) {
-          if (state is DiaryLoading) {
-            return const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation(Colors.grey),
-              ),
-            );
-          }
+      floatingActionButton: _isUnlocked && !_isSettingUp
+          ? FloatingActionButton.extended(
+              heroTag: 'diary_fab',
+              onPressed: () {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null) {
+                  Navigator.pushNamed(context, AppRoutes.login);
+                  return;
+                }
+                Navigator.pushNamed(context, AppRoutes.diaryEdit);
+              },
+              label: const Text('Write'),
+              icon: const Icon(Icons.create),
+            )
+          : null,
+      body: _buildBody(isDark),
+    );
+  }
 
-          if (state is DiaryError) {
+  Widget _buildBody(bool isDark) {
+    if (!_isUnlocked || _isSettingUp) {
+      return PinLockView(
+        isSetup: _isSettingUp,
+        savedPin: _localDb.getDiaryPin(),
+        onCorrectPin: (pin) async {
+          if (_isSettingUp) {
+            await _localDb.setDiaryPin(pin);
+          }
+          setState(() {
+            _isUnlocked = true;
+            _isSettingUp = false;
+          });
+        },
+      );
+    }
+
+    return BlocBuilder<DiaryBloc, DiaryState>(
+      builder: (context, state) {
+        if (state is DiaryLoading) {
+          return const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation(Colors.grey),
+            ),
+          );
+        }
+
+        if (state is DiaryError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64),
+                const SizedBox(height: 16),
+                Text(state.message),
+              ],
+            ),
+          );
+        }
+
+        if (state is DiaryLoaded) {
+          if (state.entries.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 64),
+                  Icon(
+                    Icons.book_outlined,
+                    size: 80,
+                    color: isDark
+                        ? AppTheme.white.withOpacity(0.2)
+                        : AppTheme.black.withOpacity(0.2),
+                  ),
                   const SizedBox(height: 16),
-                  Text(state.message),
+                  Text(
+                    'No diary entries yet',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.cyan,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Tap the Write button to create your first entry',
+                    style: TextStyle(
+                      color: isDark
+                          ? AppTheme.white.withOpacity(0.5)
+                          : AppTheme.black.withOpacity(0.5),
+                    ),
+                  ),
                 ],
               ),
             );
           }
 
-          if (state is DiaryLoaded) {
-            if (state.entries.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.book_outlined,
-                      size: 80,
-                      color: isDark
-                          ? AppTheme.white.withOpacity(0.2)
-                          : AppTheme.black.withOpacity(0.2),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No diary entries yet',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.cyan,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Tap the Write button to create your first entry',
-                      style: TextStyle(
-                        color: isDark
-                            ? AppTheme.white.withOpacity(0.5)
-                            : AppTheme.black.withOpacity(0.5),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: state.entries.length,
+            itemBuilder: (context, index) {
+              final entry = state.entries[index];
+              return _buildDiaryCard(context, entry, isDark);
+            },
+          );
+        }
 
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: state.entries.length,
-              itemBuilder: (context, index) {
-                final entry = state.entries[index];
-                return _buildDiaryCard(context, entry, isDark);
-              },
-            );
-          }
-
-          return const SizedBox.shrink();
-        },
-      ),
+        return const SizedBox.shrink();
+      },
     );
   }
 

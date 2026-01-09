@@ -83,10 +83,6 @@ class RoutineTab extends StatelessWidget {
                     title: routine.title,
                     subtitle: DateFormat.jm().format(routine.scheduledTime),
                     icon: Icons.access_time,
-                    gradientColors: [
-                      const Color(0xFF6A11CB),
-                      const Color(0xFF2575FC),
-                    ],
                     onTap: () {
                       if (FirebaseAuth.instance.currentUser == null) {
                         Navigator.pushNamed(context, AppRoutes.login);
@@ -140,19 +136,6 @@ class RoutineTab extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildEmptyState(String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.list_alt, size: 64, color: Colors.grey),
-          const SizedBox(height: 16),
-          Text(message, style: const TextStyle(color: Colors.grey)),
-        ],
-      ),
     );
   }
 
@@ -272,7 +255,10 @@ class ExamsTab extends StatelessWidget {
                     );
 
               if (exams.isEmpty) {
-                return const Center(child: Text('No exams added. Good luck!'));
+                return _buildEmptyState(
+                  'No exams added. Good luck!',
+                  icon: Icons.school,
+                );
               }
 
               return ListView.builder(
@@ -282,54 +268,60 @@ class ExamsTab extends StatelessWidget {
                   final exam = exams[index];
                   final daysLeft =
                       exam.scheduledTime.difference(DateTime.now()).inDays;
-
                   final isUrgent = daysLeft < 7;
-                  final gradientColors = isUrgent
-                      ? [
-                          const Color(0xFFC31432),
-                          const Color(0xFF240B36),
-                        ] // Deep Red
-                      : [
-                          const Color(0xFF1488CC),
-                          const Color(0xFF2B32B2),
-                        ]; // Blue
+                  final boxColor = isUrgent ? Colors.red : Colors.cyan;
+                  final isDark =
+                      Theme.of(context).brightness == Brightness.dark;
+                  final leadingColor = isDark ? Colors.white : Colors.black;
 
                   return _buildGradientCard(
                     context,
                     title: exam.title,
                     subtitle: DateFormat.yMMMd().format(exam.scheduledTime),
-                    icon: null, // Custom leading
-                    customLeading: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            '$daysLeft',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+                    customLeading: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: boxColor.withOpacity(0.1),
+                            shape: BoxShape.circle,
                           ),
-                          const Text(
-                            'Days',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.white70,
-                            ),
+                          child: Icon(Icons.school, color: boxColor, size: 20),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
                           ),
-                        ],
-                      ),
+                          decoration: BoxDecoration(
+                            color: boxColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '$daysLeft',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: leadingColor,
+                                ),
+                              ),
+                              Text(
+                                'Days',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  color: leadingColor.withOpacity(0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    gradientColors: gradientColors,
                     onTap: () {
                       if (FirebaseAuth.instance.currentUser == null) {
                         Navigator.pushNamed(context, AppRoutes.login);
@@ -405,6 +397,7 @@ class ExamsTab extends StatelessWidget {
                     decoration: const InputDecoration(
                       labelText: 'Subject (e.g. Mathematics)',
                       border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.school),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -476,7 +469,6 @@ Widget _buildGradientCard(
   required String subtitle,
   IconData? icon,
   Widget? customLeading,
-  required List<Color> gradientColors,
   required VoidCallback onTap,
   required VoidCallback onDelete,
   List<Widget>? trailingActions,
@@ -548,6 +540,19 @@ Widget _buildGradientCard(
           ),
         ),
       ),
+    ),
+  );
+}
+
+Widget _buildEmptyState(String message, {IconData icon = Icons.list_alt}) {
+  return Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 64, color: Colors.grey),
+        const SizedBox(height: 16),
+        Text(message, style: const TextStyle(color: Colors.grey)),
+      ],
     ),
   );
 }

@@ -9,6 +9,7 @@ class LocalDatabase {
   static const String _remindersBoxName = 'reminders';
   static const String _settingsBoxName = 'settings';
   static const String _onboardingCompleteKey = 'onboarding_complete';
+  static const String _diaryPinKey = 'diary_pin';
   static const String _keyStorageKey = 'hive_encryption_key';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
@@ -56,6 +57,18 @@ class LocalDatabase {
 
   Future<void> setOnboardingComplete() async {
     await _settingsBox?.put(_onboardingCompleteKey, true);
+  }
+
+  bool hasDiaryPin() {
+    return _settingsBox?.containsKey(_diaryPinKey) ?? false;
+  }
+
+  String? getDiaryPin() {
+    return _settingsBox?.get(_diaryPinKey);
+  }
+
+  Future<void> setDiaryPin(String pin) async {
+    await _settingsBox?.put(_diaryPinKey, pin);
   }
 
   Future<void> clearAllData() async {
