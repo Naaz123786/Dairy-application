@@ -10,6 +10,7 @@ class LocalDatabase {
   static const String _settingsBoxName = 'settings';
   static const String _onboardingCompleteKey = 'onboarding_complete';
   static const String _diaryPinKey = 'diary_pin';
+  static const String _lockTypeKey = 'lock_type'; // 'pin' or 'password'
   static const String _themeModeKey = 'theme_mode';
   static const String _keyStorageKey = 'hive_encryption_key';
 
@@ -70,6 +71,18 @@ class LocalDatabase {
 
   Future<void> setDiaryPin(String pin) async {
     await _settingsBox?.put(_diaryPinKey, pin);
+  }
+
+  Future<void> removeDiaryPin() async {
+    await _settingsBox?.delete(_diaryPinKey);
+  }
+
+  String getLockType() {
+    return _settingsBox?.get(_lockTypeKey, defaultValue: 'pin') ?? 'pin';
+  }
+
+  Future<void> setLockType(String type) async {
+    await _settingsBox?.put(_lockTypeKey, type);
   }
 
   String getThemeMode() {

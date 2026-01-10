@@ -34,7 +34,6 @@ class _DiaryPageState extends State<DiaryPage> {
   @override
   void didUpdateWidget(covariant DiaryPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Auto-lock when switching back to Diary tab if a PIN exists
     if (widget.isActive && !oldWidget.isActive && _localDb.hasDiaryPin()) {
       setState(() {
         _isUnlocked = false;
@@ -65,16 +64,62 @@ class _DiaryPageState extends State<DiaryPage> {
                 // TODO: Implement search
               },
             ),
-            IconButton(
+            PopupMenuButton<String>(
               icon: Icon(
-                  _localDb.hasDiaryPin() ? Icons.lock_outline : Icons.security),
-              onPressed: () {
-                if (_localDb.hasDiaryPin()) {
+                  _localDb.hasDiaryPin() ? Icons.lock_open : Icons.security),
+              tooltip: 'Security Settings',
+              onSelected: (value) async {
+                if (value == 'lock') {
                   setState(() => _isUnlocked = false);
-                } else {
+                } else if (value == 'setup' || value == 'change') {
                   setState(() => _isSettingUp = true);
+                } else if (value == 'remove') {
+                  _showRemovePinDialog();
                 }
               },
+              itemBuilder: (context) => [
+                if (_localDb.hasDiaryPin()) ...[
+                  const PopupMenuItem(
+                    value: 'lock',
+                    child: ListTile(
+                      leading: Icon(Icons.lock_outline),
+                      title: Text('Lock Now'),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'change',
+                    child: ListTile(
+                      leading: Icon(Icons.password),
+                      title: Text('Change PIN/Password'),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'remove',
+                    child: ListTile(
+                      leading: Icon(Icons.no_encryption_gmailerrorred,
+                          color: Colors.red),
+                      title: Text('Remove Lock',
+                          style: TextStyle(color: Colors.red)),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                    ),
+                  ),
+                ] else ...[
+                  const PopupMenuItem(
+                    value: 'setup',
+                    child: ListTile(
+                      leading: Icon(Icons.security),
+                      title: Text('Setup Privacy Lock'),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ] else if (_isSettingUp)
             IconButton(
@@ -104,14 +149,48 @@ class _DiaryPageState extends State<DiaryPage> {
     );
   }
 
+  void _showRemovePinDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Lock?'),
+        content: const Text(
+          'This will disable the privacy lock for your diary. Anyone with access to your phone will be able to read your entries.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await _localDb.removeDiaryPin();
+              Navigator.pop(context);
+              setState(() {
+                _isUnlocked = true;
+              });
+              ScaffoldMessenger.of(this.context).showSnackBar(
+                const SnackBar(content: Text('Lock removed successfully')),
+              );
+            },
+            child: const Text('Remove', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBody(bool isDark) {
     if (!_isUnlocked || _isSettingUp) {
+      final hasPin = _localDb.hasDiaryPin();
       return PinLockView(
-        isSetup: _isSettingUp,
+        isSetup: !hasPin || _isSettingUp,
+        initialLockType: _localDb.getLockType(),
         savedPin: _localDb.getDiaryPin(),
-        onCorrectPin: (pin) async {
-          if (_isSettingUp) {
-            await _localDb.setDiaryPin(pin);
+        onCorrectPin: (secret, type) async {
+          if (!hasPin || _isSettingUp) {
+            await _localDb.setDiaryPin(secret);
+            await _localDb.setLockType(type);
           }
           setState(() {
             _isUnlocked = true;
@@ -203,7 +282,7 @@ class _DiaryPageState extends State<DiaryPage> {
         border: Border.all(
           color: isDark
               ? Colors.cyan.withOpacity(0.3)
-              : Colors.cyan.withOpacity(0.5), // Visible Cyan in Light Mode
+              : Colors.cyan.withOpacity(0.5),
           width: 1,
         ),
       ),
