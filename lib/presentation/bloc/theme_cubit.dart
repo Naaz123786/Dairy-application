@@ -1,25 +1,19 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/datasources/local_database.dart';
 
-class ThemeCubit extends Cubit<ThemeMode> {
+class ThemeCubit extends Cubit<String> {
   final LocalDatabase _localDb;
 
-  ThemeCubit(this._localDb) : super(_getInitialTheme(_localDb));
-
-  static ThemeMode _getInitialTheme(LocalDatabase db) {
-    final themeStr = db.getThemeMode();
-    return themeStr == 'dark' ? ThemeMode.dark : ThemeMode.light;
-  }
+  ThemeCubit(this._localDb) : super(_localDb.getThemeMode());
 
   void toggleTheme() {
-    final newMode = state == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
-    _localDb.setThemeMode(newMode == ThemeMode.dark ? 'dark' : 'light');
-    emit(newMode);
+    final current = state;
+    final next = current == 'light' ? 'dark' : 'light';
+    setTheme(next);
   }
 
-  void setTheme(ThemeMode mode) {
-    _localDb.setThemeMode(mode == ThemeMode.dark ? 'dark' : 'light');
-    emit(mode);
+  void setTheme(String themeKey) {
+    _localDb.setThemeMode(themeKey);
+    emit(themeKey);
   }
 }

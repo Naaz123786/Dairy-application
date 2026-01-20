@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/theme/app_theme.dart';
-import '../bloc/theme_cubit.dart';
 import '../../core/routes/app_routes.dart';
 import '../../injection_container.dart' as di;
 import '../bloc/reminder_bloc.dart';
 import '../bloc/diary_bloc.dart';
 import '../../data/datasources/local_database.dart';
+import '../widgets/theme_switcher_button.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -22,6 +22,10 @@ class ProfilePage extends StatelessWidget {
           'My Profile',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
+        actions: const [
+          ThemeSwitcherButton(),
+          SizedBox(width: 8),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
@@ -97,7 +101,7 @@ class ProfilePage extends StatelessWidget {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            _buildThemeToggleCard(context, isDark),
+            const SizedBox(height: 16),
             _buildSettingCard(
               context,
               icon: Icons.security,
@@ -193,81 +197,6 @@ class ProfilePage extends StatelessWidget {
             ),
             const SizedBox(height: 80),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildThemeToggleCard(BuildContext context, bool isDark) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkGrey : AppTheme.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppTheme.white : AppTheme.black,
-          width: 2,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            context.read<ThemeCubit>().toggleTheme();
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.cyan.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    isDark ? Icons.dark_mode : Icons.light_mode,
-                    color: Colors.cyan,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Theme Mode',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        isDark ? 'Dark Mode' : 'Light Mode',
-                        style: TextStyle(
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Switch(
-                  value: isDark,
-                  onChanged: (value) {
-                    context.read<ThemeCubit>().toggleTheme();
-                  },
-                  activeColor: AppTheme.white,
-                  activeTrackColor: Colors.grey[700],
-                  inactiveThumbColor: AppTheme.black,
-                  inactiveTrackColor: Colors.grey[300],
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );

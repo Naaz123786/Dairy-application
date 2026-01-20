@@ -12,6 +12,7 @@ import 'presentation/bloc/theme_cubit.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'data/datasources/local_database.dart';
+import 'presentation/widgets/theme_background.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,16 +54,18 @@ class MyApp extends StatelessWidget {
           create: (_) => ThemeCubit(di.sl<LocalDatabase>()),
         ),
       ],
-      child: BlocBuilder<ThemeCubit, ThemeMode>(
-        builder: (context, themeMode) {
+      child: BlocBuilder<ThemeCubit, String>(
+        builder: (context, themeKey) {
+          final themeData = AppTheme.getTheme(themeKey);
           return MaterialApp(
             title: 'Personal Diary',
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: themeMode,
+            theme: themeData,
             onGenerateRoute: AppRoutes.onGenerateRoute,
             initialRoute: initialRoute,
+            builder: (context, child) {
+              return ThemeBackground(child: child!);
+            },
           );
         },
       ),

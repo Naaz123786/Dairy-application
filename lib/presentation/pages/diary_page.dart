@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../data/datasources/local_database.dart';
 import '../widgets/pin_lock_view.dart';
 import '../../injection_container.dart' as di;
+import '../widgets/theme_switcher_button.dart';
 
 class DiaryPage extends StatefulWidget {
   final bool isActive;
@@ -57,6 +58,7 @@ class _DiaryPageState extends State<DiaryPage> {
         ),
         elevation: 0,
         actions: [
+          const ThemeSwitcherButton(),
           if (_isUnlocked && !_isSettingUp) ...[
             IconButton(
               icon: const Icon(Icons.search),

@@ -6,6 +6,7 @@ import '../bloc/reminder_bloc.dart';
 import '../../domain/entities/reminder.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/routes/app_routes.dart';
+import '../widgets/theme_switcher_button.dart';
 
 class PlannerPage extends StatelessWidget {
   const PlannerPage({super.key});
@@ -32,6 +33,10 @@ class PlannerView extends StatelessWidget {
               color: Colors.cyan,
             ),
           ),
+          actions: const [
+            ThemeSwitcherButton(),
+            SizedBox(width: 8),
+          ],
           elevation: 0,
           bottom: TabBar(
             indicatorSize: TabBarIndicatorSize.tab,

@@ -8,6 +8,7 @@ import '../bloc/reminder_bloc.dart';
 import '../../domain/entities/reminder.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/routes/app_routes.dart';
+import '../widgets/theme_switcher_button.dart';
 
 class HomeDashboardPage extends StatelessWidget {
   const HomeDashboardPage({super.key});
@@ -25,6 +26,10 @@ class HomeDashboardPage extends StatelessWidget {
             color: Colors.cyan,
           ),
         ),
+        actions: const [
+          ThemeSwitcherButton(),
+          SizedBox(width: 8),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
