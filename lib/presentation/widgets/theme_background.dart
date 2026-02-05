@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/theme_cubit.dart';
-import 'animations/particle_system.dart';
+import 'package:diary_app/presentation/widgets/animations/particle_system.dart';
+import 'package:diary_app/core/theme/app_theme.dart';
 
 class ThemeBackground extends StatefulWidget {
   final Widget child;
@@ -14,9 +15,10 @@ class ThemeBackground extends StatefulWidget {
 class _ThemeBackgroundState extends State<ThemeBackground>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  List<ParticleModel> _particles = [];
-  ParticleType _currentType = ParticleType.circle;
-  Color _particleColor = Colors.white;
+  final List<ParticleModel> _particles = [];
+  final List<MeshBlobModel> _blobs = [];
+  String? _currentTheme;
+  Offset? _touchPosition;
 
   @override
   void initState() {
@@ -24,58 +26,48 @@ class _ThemeBackgroundState extends State<ThemeBackground>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
-    )..repeat();
+    )..addListener(_updateAnimation);
+    _controller.repeat();
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  void _updateAnimation() {
+    if (!mounted) return;
+    setState(() {
+      final size = MediaQuery.of(context).size;
+      final themeKey = _currentTheme ?? 'classic_light';
+      final variant = AppTheme.getVariant(themeKey);
+
+      for (var blob in _blobs) {
+        blob.update(size);
+      }
+      for (var particle in _particles) {
+        particle.update(size, variant.particleColor, _touchPosition);
+      }
+    });
   }
 
-  void _updateParticles(String themeKey, Size size) {
-    ParticleType newType;
-    Color newColor;
+  void _initElements(String themeKey, Size size) {
+    final variant = AppTheme.getVariant(themeKey);
+    final categoryId = themeKey.split('_')[0];
+    final type = variant.particleType;
+    final color = variant.particleColor;
 
-    switch (themeKey) {
-      case 'love':
-        newType = ParticleType.heart;
-        newColor = const Color(0xFFFF80AB);
-        break;
-      case 'flower':
-        newType = ParticleType.petal;
-        newColor = const Color(0xFFFFE0B2);
-        break;
-      case 'firetail':
-        newType = ParticleType.ember;
-        newColor = const Color(0xFFFFD54F);
-        break;
-      case 'heroism':
-      case 'anime':
-        newType = ParticleType.star;
-        newColor = const Color(0xFF80DEEA);
-        break;
-      case 'goodvsevil':
-        newType = ParticleType.circle;
-        newColor = Colors.grey.withOpacity(0.3);
-        break;
-      default:
-        newType = ParticleType.circle;
-        newColor = Colors.transparent;
+    _particles.clear();
+    int particleCount = 40;
+    if (categoryId == 'anime') particleCount = 60;
+    if (categoryId == 'love' || categoryId == 'flower') particleCount = 20;
+    if (categoryId == 'firetail') particleCount = 50;
+
+    for (int i = 0; i < particleCount; i++) {
+      _particles.add(ParticleModel(size, type, color));
     }
 
-    if (newType != _currentType || _particles.isEmpty) {
-      _currentType = newType;
-      _particleColor = newColor;
-      _particles = List.generate(
-        newType == ParticleType.circle ? 0 : 25,
-        (_) => ParticleModel(size, newType, newColor),
-      );
+    _blobs.clear();
+    int blobCount = (categoryId == 'love' || categoryId == 'flower') ? 6 : 3;
+    for (int i = 0; i < blobCount; i++) {
+      _blobs.add(MeshBlobModel(size));
     }
-
-    for (var particle in _particles) {
-      particle.update(size, newColor);
-    }
+    _currentTheme = themeKey;
   }
 
   @override
@@ -85,28 +77,46 @@ class _ThemeBackgroundState extends State<ThemeBackground>
         return LayoutBuilder(
           builder: (context, constraints) {
             final size = Size(constraints.maxWidth, constraints.maxHeight);
+            if (_currentTheme != themeKey) {
+              _initElements(themeKey, size);
+            }
 
-            return Stack(
-              children: [
-                // Animation Layer
-                AnimatedBuilder(
-                  animation: _controller,
-                  builder: (context, child) {
-                    _updateParticles(themeKey, size);
-                    return CustomPaint(
+            final variant = AppTheme.getVariant(themeKey);
+
+            return MouseRegion(
+              onHover: (event) => _touchPosition = event.localPosition,
+              onExit: (_) => _touchPosition = null,
+              child: GestureDetector(
+                onPanUpdate: (details) =>
+                    _touchPosition = details.localPosition,
+                onPanEnd: (_) => _touchPosition = null,
+                onTapDown: (details) => _touchPosition = details.localPosition,
+                onTapUp: (_) => _touchPosition = null,
+                child: Stack(
+                  children: [
+                    CustomPaint(
                       size: size,
                       painter: ParticlePainter(
-                          _particles, _currentType, _particleColor),
-                    );
-                  },
+                        _particles,
+                        _blobs,
+                        variant.particleType,
+                        variant.particleColor,
+                      ),
+                    ),
+                    widget.child,
+                  ],
                 ),
-                // App Content Layer
-                widget.child,
-              ],
+              ),
             );
           },
         );
       },
     );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }
