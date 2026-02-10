@@ -8,7 +8,6 @@ import '../../domain/entities/reminder.dart';
 import '../../core/theme/app_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/routes/app_routes.dart';
-import '../widgets/theme_switcher_button.dart';
 
 class CalendarPage extends StatelessWidget {
   const CalendarPage({super.key});
@@ -66,10 +65,7 @@ class _CalendarViewState extends State<CalendarView> {
             color: Colors.cyan,
           ),
         ),
-        actions: const [
-          ThemeSwitcherButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [],
         elevation: 0,
       ),
       floatingActionButton: FloatingActionButton.extended(

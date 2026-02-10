@@ -8,6 +8,7 @@ class DiaryEntry extends Equatable {
   final String mood;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final List<String> images;
 
   const DiaryEntry({
     required this.id,
@@ -17,16 +18,18 @@ class DiaryEntry extends Equatable {
     required this.mood,
     required this.createdAt,
     required this.updatedAt,
+    this.images = const [],
   });
 
   @override
   List<Object?> get props => [
-    id,
-    title,
-    content,
-    date,
-    mood,
-    createdAt,
-    updatedAt,
-  ];
+        id,
+        title,
+        content,
+        date,
+        mood,
+        createdAt,
+        updatedAt,
+        images,
+      ];
 }

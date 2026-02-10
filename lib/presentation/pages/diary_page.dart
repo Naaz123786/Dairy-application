@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:io';
 import '../../core/routes/app_routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/entities/diary_entry.dart';
@@ -9,7 +10,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../data/datasources/local_database.dart';
 import '../widgets/pin_lock_view.dart';
 import '../../injection_container.dart' as di;
-import '../widgets/theme_switcher_button.dart';
 
 class DiaryPage extends StatefulWidget {
   final bool isActive;
@@ -58,7 +58,6 @@ class _DiaryPageState extends State<DiaryPage> {
         ),
         elevation: 0,
         actions: [
-          const ThemeSwitcherButton(),
           if (_isUnlocked && !_isSettingUp) ...[
             IconButton(
               icon: const Icon(Icons.search),
@@ -66,6 +65,7 @@ class _DiaryPageState extends State<DiaryPage> {
                 // TODO: Implement search
               },
             ),
+            const SizedBox(width: 8),
             PopupMenuButton<String>(
               icon: Icon(
                   _localDb.hasDiaryPin() ? Icons.lock_open : Icons.security),
@@ -356,6 +356,31 @@ class _DiaryPageState extends State<DiaryPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                if (entry.images.isNotEmpty) ...[
+                  SizedBox(
+                    height: 80,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: entry.images.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        return Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            image: DecorationImage(
+                              image: FileImage(File(entry.images[index])),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Text(
                   entry.content,
                   maxLines: 3,

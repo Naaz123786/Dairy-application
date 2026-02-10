@@ -8,7 +8,11 @@ class ThemeCubit extends Cubit<String> {
 
   void toggleTheme() {
     final current = state;
-    final next = current == 'light' ? 'dark' : 'light';
+    // Simple toggle between classic light and dark for now
+    // If we want to support other packs, we'd need more logic
+    final next = current.contains('dark') || current.contains('night')
+        ? 'classic_light'
+        : 'classic_dark';
     setTheme(next);
   }
 

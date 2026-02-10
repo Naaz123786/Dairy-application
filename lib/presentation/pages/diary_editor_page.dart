@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../domain/entities/diary_entry.dart';
 import '../bloc/diary_bloc.dart';
 import '../../core/theme/app_theme.dart';
@@ -20,6 +22,9 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
   final _contentController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   String? _selectedMood;
+  List<String> _attachedImages = [];
+  final ImagePicker _picker = ImagePicker();
+
   final List<String> _moods = [
     'Happy',
     'Sad',
@@ -37,7 +42,30 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
       _contentController.text = widget.entry!.content;
       _selectedMood = widget.entry!.mood;
       _selectedDate = widget.entry!.date;
+      _attachedImages = List.from(widget.entry!.images);
     }
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        setState(() {
+          _attachedImages.add(image.path);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to pick image: $e')),
+      );
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      _attachedImages.removeAt(index);
+    });
   }
 
   @override
@@ -82,6 +110,23 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
             const SizedBox(height: 12),
             _buildMoodSelector(isDark),
             const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Attachments',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                TextButton.icon(
+                  onPressed: _pickImage,
+                  icon: const Icon(Icons.add_photo_alternate),
+                  label: const Text('Add Photo'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (_attachedImages.isNotEmpty) _buildImageGrid(),
+            const SizedBox(height: 24),
             const Text(
               'Write your thoughts',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -94,6 +139,55 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
       ),
     );
   }
+
+  Widget _buildImageGrid() {
+    return SizedBox(
+      height: 120,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _attachedImages.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final path = _attachedImages[index];
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  image: DecorationImage(
+                    image: FileImage(File(path)),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              Positioned(
+                top: -8,
+                right: -8,
+                child: GestureDetector(
+                  onTap: () => _removeImage(index),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child:
+                        const Icon(Icons.close, size: 14, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // ... (Other build methods stay same)
 
   Widget _buildDatePicker(bool isDark) {
     return InkWell(
@@ -167,9 +261,8 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
         prefixIcon: const Icon(Icons.title),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
         filled: true,
-        fillColor: isDark
-            ? AppTheme.darkGrey
-            : AppTheme.black.withOpacity(0.05),
+        fillColor:
+            isDark ? AppTheme.darkGrey : AppTheme.black.withOpacity(0.05),
       ),
     );
   }
@@ -198,15 +291,15 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
               color: isSelected
                   ? (isDark ? AppTheme.white : AppTheme.black)
                   : (isDark
-                        ? AppTheme.darkGrey
-                        : AppTheme.black.withOpacity(0.05)),
+                      ? AppTheme.darkGrey
+                      : AppTheme.black.withOpacity(0.05)),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: isSelected
                     ? (isDark ? AppTheme.white : AppTheme.black)
                     : (isDark
-                          ? AppTheme.white.withOpacity(0.1)
-                          : AppTheme.black.withOpacity(0.1)),
+                        ? AppTheme.white.withOpacity(0.1)
+                        : AppTheme.black.withOpacity(0.1)),
                 width: 2,
               ),
             ),
@@ -280,6 +373,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
       mood: _selectedMood ?? '',
       createdAt: widget.entry?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
+      images: _attachedImages,
     );
 
     context.read<DiaryBloc>().add(AddDiaryEntry(entry));
@@ -305,10 +399,10 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: Theme.of(context).colorScheme.copyWith(
-              onSurface: Theme.of(context).brightness == Brightness.dark
-                  ? AppTheme.white
-                  : AppTheme.black,
-            ),
+                  onSurface: Theme.of(context).brightness == Brightness.dark
+                      ? AppTheme.white
+                      : AppTheme.black,
+                ),
           ),
           child: child!,
         );

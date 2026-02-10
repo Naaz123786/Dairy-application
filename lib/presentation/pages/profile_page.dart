@@ -7,7 +7,7 @@ import '../../injection_container.dart' as di;
 import '../bloc/reminder_bloc.dart';
 import '../bloc/diary_bloc.dart';
 import '../../data/datasources/local_database.dart';
-import '../widgets/theme_switcher_button.dart';
+import '../bloc/theme_cubit.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -22,17 +22,13 @@ class ProfilePage extends StatelessWidget {
           'My Profile',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: const [
-          ThemeSwitcherButton(),
-          SizedBox(width: 8),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Profile Header
+            // ... (Profile Header remains same)
             StreamBuilder<User?>(
               stream: FirebaseAuth.instance.userChanges(),
               initialData: FirebaseAuth.instance.currentUser,
@@ -101,7 +97,45 @@ class ProfilePage extends StatelessWidget {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            const SizedBox(height: 16),
+
+            // Dark Mode Toggle
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: isDark ? AppTheme.darkGrey : AppTheme.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+                  width: 1,
+                ),
+              ),
+              child: ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                title: const Text(
+                  'Dark Mode',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  isDark ? 'Dark mode is on' : 'Light mode is on',
+                  style: TextStyle(
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    fontSize: 13,
+                  ),
+                ),
+                trailing: Switch(
+                  value: isDark,
+                  activeColor: Colors.cyan,
+                  onChanged: (value) {
+                    context.read<ThemeCubit>().toggleTheme();
+                  },
+                ),
+              ),
+            ),
+
             _buildSettingCard(
               context,
               icon: Icons.security,

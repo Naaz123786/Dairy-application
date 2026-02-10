@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lottie/lottie.dart';
 import '../bloc/theme_cubit.dart';
 import 'package:diary_app/core/theme/app_theme.dart';
 import 'package:diary_app/core/theme/theme_model.dart';
+import '../pages/theme_preview_screen.dart';
 
 class ThemeGallerySheet extends StatefulWidget {
-  const ThemeGallerySheet({super.key});
+  final AppThemeCategory? initialCategory;
+
+  const ThemeGallerySheet({super.key, this.initialCategory});
 
   @override
   State<ThemeGallerySheet> createState() => _ThemeGallerySheetState();
@@ -15,13 +19,19 @@ class _ThemeGallerySheetState extends State<ThemeGallerySheet> {
   AppThemeCategory? _selectedCategory;
 
   @override
+  void initState() {
+    super.initState();
+    _selectedCategory = widget.initialCategory;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final currentThemeId = context.watch<ThemeCubit>().state;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.8,
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       decoration: BoxDecoration(
@@ -54,7 +64,7 @@ class _ThemeGallerySheetState extends State<ThemeGallerySheet> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Theme Packs',
+              'Theme Library',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             IconButton(
@@ -64,7 +74,7 @@ class _ThemeGallerySheetState extends State<ThemeGallerySheet> {
           ],
         ),
         const Text(
-          'Choose a style to see 10+ variants',
+          'Select a vibe to preview experience',
           style: TextStyle(color: Colors.grey, fontSize: 13),
         ),
         const SizedBox(height: 24),
@@ -75,52 +85,78 @@ class _ThemeGallerySheetState extends State<ThemeGallerySheet> {
               crossAxisCount: 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 1.4,
+              childAspectRatio: 0.85, // Taller cards for Lottie
             ),
             itemCount: AppTheme.themePacks.length,
             itemBuilder: (context, index) {
               final pack = AppTheme.themePacks[index];
-              final isCurrentPack =
-                  pack.variants.any((v) => v.id == currentThemeId);
-
-              return InkWell(
-                onTap: () => setState(() => _selectedCategory = pack),
-                borderRadius: BorderRadius.circular(20),
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ThemePreviewScreen(category: pack),
+                    ),
+                  );
+                },
                 child: Container(
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white10
-                        : Colors.black.withOpacity(0.05),
+                    color: pack.backgroundColor,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isCurrentPack
-                          ? Colors.cyan
-                          : (isDark ? Colors.white10 : Colors.black12),
-                      width: 2,
-                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: pack.backgroundColor.withOpacity(0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
                     children: [
-                      Icon(pack.icon,
-                          size: 32,
-                          color: isCurrentPack
-                              ? Colors.cyan
-                              : (isDark ? Colors.white70 : Colors.black54)),
-                      const SizedBox(height: 8),
-                      Text(
-                        pack.name,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: isCurrentPack
-                              ? Colors.cyan
-                              : (isDark ? Colors.white : Colors.black87),
+                      // Animation Background
+                      Positioned.fill(
+                        child: Lottie.asset(
+                          pack.animationPath,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                              child: Icon(pack.icon,
+                                  size: 40, color: Colors.white24),
+                            );
+                          },
                         ),
                       ),
-                      Text(
-                        '${pack.variants.length} Variants',
-                        style:
-                            const TextStyle(fontSize: 10, color: Colors.grey),
+                      // Overlay
+                      Positioned.fill(
+                        child: Container(
+                          color: Colors.black.withOpacity(0.3),
+                        ),
+                      ),
+                      // Content
+                      Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(pack.icon, size: 40, color: Colors.white),
+                            const SizedBox(height: 10),
+                            Text(
+                              pack.name,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '${pack.variants.length} Styles',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.8),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -145,7 +181,13 @@ class _ThemeGallerySheetState extends State<ThemeGallerySheet> {
             Row(
               children: [
                 IconButton(
-                  onPressed: () => setState(() => _selectedCategory = null),
+                  onPressed: () {
+                    if (widget.initialCategory != null) {
+                      Navigator.pop(context);
+                    } else {
+                      setState(() => _selectedCategory = null);
+                    }
+                  },
                   icon: const Icon(Icons.arrow_back),
                 ),
                 Text(
@@ -212,6 +254,7 @@ class _ThemeGallerySheetState extends State<ThemeGallerySheet> {
                               : (isDark ? Colors.white70 : Colors.black87),
                         ),
                       ),
+                      if (isSelected) const SizedBox(height: 4),
                       if (isSelected)
                         const Icon(Icons.check_circle,
                             color: Colors.white, size: 16),

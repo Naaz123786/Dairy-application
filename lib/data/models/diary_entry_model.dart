@@ -26,6 +26,9 @@ class DiaryEntryModel extends HiveObject {
   @HiveField(6)
   final DateTime updatedAt;
 
+  @HiveField(7)
+  final List<String> images;
+
   DiaryEntryModel({
     required this.id,
     required this.title,
@@ -34,6 +37,7 @@ class DiaryEntryModel extends HiveObject {
     required this.mood,
     required this.createdAt,
     required this.updatedAt,
+    this.images = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -45,6 +49,7 @@ class DiaryEntryModel extends HiveObject {
       'mood': mood,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
+      'images': images,
     };
   }
 
@@ -64,6 +69,7 @@ class DiaryEntryModel extends HiveObject {
       mood: map['mood'] ?? 'Neutral',
       createdAt: getDate(map['createdAt']),
       updatedAt: getDate(map['updatedAt']),
+      images: List<String>.from(map['images'] ?? []),
     );
   }
 }
