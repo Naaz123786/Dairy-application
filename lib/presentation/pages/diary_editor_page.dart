@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
@@ -110,23 +111,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
             const SizedBox(height: 12),
             _buildMoodSelector(isDark),
             const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Attachments',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                TextButton.icon(
-                  onPressed: _pickImage,
-                  icon: const Icon(Icons.add_photo_alternate),
-                  label: const Text('Add Photo'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (_attachedImages.isNotEmpty) _buildImageGrid(),
-            const SizedBox(height: 24),
             const Text(
               'Write your thoughts',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -136,53 +120,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
             const SizedBox(height: 20),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildImageGrid() {
-    return SizedBox(
-      height: 120,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _attachedImages.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final path = _attachedImages[index];
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  image: DecorationImage(
-                    image: FileImage(File(path)),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-              Positioned(
-                top: -8,
-                right: -8,
-                child: GestureDetector(
-                  onTap: () => _removeImage(index),
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child:
-                        const Icon(Icons.close, size: 14, color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
       ),
     );
   }
@@ -321,7 +258,9 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
 
   Widget _buildContentField(bool isDark) {
     return Container(
-      height: 300,
+      constraints: const BoxConstraints(
+        minHeight: 200,
+      ),
       decoration: BoxDecoration(
         color: isDark ? AppTheme.darkGrey : AppTheme.black.withOpacity(0.02),
         borderRadius: BorderRadius.circular(20),
@@ -331,22 +270,151 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
               : AppTheme.black.withOpacity(0.1),
         ),
       ),
-      child: TextField(
-        controller: _contentController,
-        maxLines: null,
-        expands: true,
-        textAlignVertical: TextAlignVertical.top,
-        style: const TextStyle(fontSize: 16, height: 1.5),
-        decoration: InputDecoration(
-          hintText: 'Dear Diary,\n\nToday was...',
-          hintStyle: TextStyle(
-            color: isDark
-                ? AppTheme.white.withOpacity(0.3)
-                : AppTheme.black.withOpacity(0.3),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Thoughts Field
+          TextField(
+            controller: _contentController,
+            maxLines: null,
+            minLines: 5,
+            textAlignVertical: TextAlignVertical.top,
+            style: const TextStyle(fontSize: 16, height: 1.5),
+            decoration: InputDecoration(
+              hintText: 'Dear Diary,\n\nToday was...',
+              hintStyle: TextStyle(
+                color: isDark
+                    ? AppTheme.white.withOpacity(0.3)
+                    : AppTheme.black.withOpacity(0.3),
+              ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.all(16),
+            ),
           ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.all(20),
-        ),
+
+          // Divider
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Divider(
+              height: 1,
+              color: isDark
+                  ? AppTheme.white.withOpacity(0.05)
+                  : AppTheme.black.withOpacity(0.05),
+            ),
+          ),
+
+          // Media Section Header within the box
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Media',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? AppTheme.white.withOpacity(0.5)
+                        : AppTheme.black.withOpacity(0.5),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: _pickImage,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppTheme.white : AppTheme.black,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.add_photo_alternate_rounded,
+                          size: 14,
+                          color: isDark ? AppTheme.black : AppTheme.white,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Add',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? AppTheme.black : AppTheme.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Images vertical list
+          if (_attachedImages.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+              child: Column(
+                children: _attachedImages.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final path = entry.value;
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: index < _attachedImages.length - 1 ? 10 : 0,
+                    ),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          height: 180,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            image: DecorationImage(
+                              image: kIsWeb
+                                  ? NetworkImage(path)
+                                  : FileImage(File(path)) as ImageProvider,
+                              fit: BoxFit.cover,
+                            ),
+                            border: Border.all(
+                              color: isDark
+                                  ? AppTheme.white.withOpacity(0.1)
+                                  : AppTheme.black.withOpacity(0.1),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: GestureDetector(
+                            onTap: () => _removeImage(index),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                                border:
+                                    Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: const Icon(Icons.close,
+                                  size: 14, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            )
+          else
+            const SizedBox(height: 12),
+        ],
       ),
     );
   }

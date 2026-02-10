@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:io';
 import '../../core/routes/app_routes.dart';
@@ -371,7 +372,10 @@ class _DiaryPageState extends State<DiaryPage> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             image: DecorationImage(
-                              image: FileImage(File(entry.images[index])),
+                              image: kIsWeb
+                                  ? NetworkImage(entry.images[index])
+                                  : FileImage(File(entry.images[index]))
+                                      as ImageProvider,
                               fit: BoxFit.cover,
                             ),
                           ),
