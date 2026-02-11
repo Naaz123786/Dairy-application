@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'dart:io';
 import '../../core/routes/app_routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/entities/diary_entry.dart';
@@ -301,7 +299,7 @@ class _DiaryPageState extends State<DiaryPage> {
           },
           borderRadius: BorderRadius.circular(20),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -311,7 +309,7 @@ class _DiaryPageState extends State<DiaryPage> {
                       child: Text(
                         entry.title,
                         style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.cyan,
                         ),
@@ -322,14 +320,14 @@ class _DiaryPageState extends State<DiaryPage> {
                     if (entry.mood.isNotEmpty)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
+                          horizontal: 10,
+                          vertical: 4,
                         ),
                         decoration: BoxDecoration(
                           color: isDark
                               ? AppTheme.white.withOpacity(0.1)
                               : AppTheme.black.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: isDark
                                 ? AppTheme.white.withOpacity(0.2)
@@ -339,71 +337,33 @@ class _DiaryPageState extends State<DiaryPage> {
                         child: Text(
                           entry.mood,
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text(
                   DateFormat('EEEE, d MMMM y').format(entry.date),
                   style: TextStyle(
                     color: isDark
                         ? AppTheme.white.withOpacity(0.5)
                         : AppTheme.black.withOpacity(0.5),
-                    fontSize: 13,
+                    fontSize: 12,
                   ),
                 ),
-                const SizedBox(height: 12),
-                if (entry.images.isNotEmpty) ...[
-                  SizedBox(
-                    height: 80,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: entry.images.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(width: 8),
-                      itemBuilder: (context, index) {
-                        return Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            image: DecorationImage(
-                              image: kIsWeb
-                                  ? NetworkImage(entry.images[index])
-                                  : FileImage(File(entry.images[index]))
-                                      as ImageProvider,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                Text(
-                  entry.content,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 15,
-                    height: 1.5,
-                    color: isDark
-                        ? AppTheme.white.withOpacity(0.8)
-                        : AppTheme.black.withOpacity(0.8),
-                  ),
-                ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 4),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     IconButton(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                       icon:
-                          const Icon(Icons.edit, size: 20, color: Colors.blue),
+                          const Icon(Icons.edit, size: 18, color: Colors.blue),
                       onPressed: () {
                         if (FirebaseAuth.instance.currentUser == null) {
                           Navigator.pushNamed(context, AppRoutes.login);
@@ -416,9 +376,13 @@ class _DiaryPageState extends State<DiaryPage> {
                         );
                       },
                     ),
+                    const SizedBox(width: 12),
                     IconButton(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                       icon: const Icon(Icons.delete_outline,
-                          size: 20, color: Colors.red),
+                          size: 18, color: Colors.red),
                       onPressed: () {
                         if (FirebaseAuth.instance.currentUser == null) {
                           Navigator.pushNamed(context, AppRoutes.login);

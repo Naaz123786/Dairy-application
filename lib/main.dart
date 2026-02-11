@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -14,26 +15,30 @@ import 'firebase_options.dart';
 import 'data/datasources/local_database.dart';
 import 'presentation/widgets/theme_background.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  if (kIsWeb) {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } else {
-    // For Android/iOS, we rely on google-services.json/GoogleService-Info.plist
-    await Firebase.initializeApp();
-  }
+    if (kIsWeb) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } else {
+      await Firebase.initializeApp();
+    }
 
-  await Hive.initFlutter();
-  await di.init();
+    await Hive.initFlutter();
+    await di.init();
 
-  final localDb = di.sl<LocalDatabase>();
-  final initialRoute =
-      localDb.isOnboardingComplete() ? AppRoutes.home : AppRoutes.onboarding;
+    final localDb = di.sl<LocalDatabase>();
+    final initialRoute =
+        localDb.isOnboardingComplete() ? AppRoutes.home : AppRoutes.onboarding;
 
-  runApp(MyApp(initialRoute: initialRoute));
+    runApp(MyApp(initialRoute: initialRoute));
+  }, (error, stack) {
+    debugPrint('Startup Error: $error');
+    debugPrint(stack.toString());
+  });
 }
 
 class MyApp extends StatelessWidget {

@@ -18,6 +18,13 @@ class AddDiaryEntry extends DiaryEvent {
   List<Object?> get props => [entry];
 }
 
+class UpdateDiaryEntry extends DiaryEvent {
+  final DiaryEntry entry;
+  UpdateDiaryEntry(this.entry);
+  @override
+  List<Object?> get props => [entry];
+}
+
 class DeleteDiaryEntry extends DiaryEvent {
   final String id;
   DeleteDiaryEntry(this.id);
@@ -65,12 +72,20 @@ class DiaryBloc extends Bloc<DiaryEvent, DiaryState> {
     });
 
     on<AddDiaryEntry>((event, emit) async {
-      // Optimistic update or reload? Reload is safer for simplicity.
       try {
         await repository.addEntry(event.entry);
         add(LoadDiaryEntries());
       } catch (e) {
         emit(DiaryError('Failed to add entry'));
+      }
+    });
+
+    on<UpdateDiaryEntry>((event, emit) async {
+      try {
+        await repository.updateEntry(event.entry);
+        add(LoadDiaryEntries());
+      } catch (e) {
+        emit(DiaryError('Failed to update entry'));
       }
     });
 

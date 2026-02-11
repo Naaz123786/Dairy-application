@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -51,8 +52,17 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
+        String imagePath = image.path;
+
+        if (kIsWeb) {
+          // On Web, we must convert the image to Base64 for persistence
+          // because blob URLs are temporary and expires on reload.
+          final bytes = await image.readAsBytes();
+          imagePath = 'data:image/png;base64,${base64Encode(bytes)}';
+        }
+
         setState(() {
-          _attachedImages.add(image.path);
+          _attachedImages.add(imagePath);
         });
       }
     } catch (e) {
@@ -259,7 +269,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
   Widget _buildContentField(bool isDark) {
     return Container(
       constraints: const BoxConstraints(
-        minHeight: 200,
+        minHeight: 100,
       ),
       decoration: BoxDecoration(
         color: isDark ? AppTheme.darkGrey : AppTheme.black.withOpacity(0.02),
@@ -278,7 +288,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
           TextField(
             controller: _contentController,
             maxLines: null,
-            minLines: 5,
+            minLines: 2,
             textAlignVertical: TextAlignVertical.top,
             style: const TextStyle(fontSize: 16, height: 1.5),
             decoration: InputDecoration(
@@ -444,7 +454,11 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
       images: _attachedImages,
     );
 
-    context.read<DiaryBloc>().add(AddDiaryEntry(entry));
+    if (widget.entry != null) {
+      context.read<DiaryBloc>().add(UpdateDiaryEntry(entry));
+    } else {
+      context.read<DiaryBloc>().add(AddDiaryEntry(entry));
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

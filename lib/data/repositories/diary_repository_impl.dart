@@ -49,6 +49,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
       mood: model.mood,
       createdAt: model.createdAt,
       updatedAt: model.updatedAt,
+      images: model.images,
     );
   }
 
@@ -61,6 +62,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
       mood: entity.mood,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      images: entity.images,
     );
   }
 }
