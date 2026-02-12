@@ -11,6 +11,8 @@ abstract class ReminderEvent extends Equatable {
 
 class LoadReminders extends ReminderEvent {}
 
+class SyncReminders extends ReminderEvent {}
+
 class AddReminder extends ReminderEvent {
   final Reminder reminder;
   AddReminder(this.reminder);
@@ -95,6 +97,17 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
         add(LoadReminders());
       } catch (e) {
         emit(ReminderError('Failed to delete reminder'));
+      }
+    });
+
+    on<SyncReminders>((event, emit) async {
+      emit(ReminderLoading());
+      try {
+        await repository.sync();
+        final reminders = await repository.getReminders();
+        emit(ReminderLoaded(reminders));
+      } catch (e) {
+        emit(ReminderError('Sync failed: $e'));
       }
     });
   }

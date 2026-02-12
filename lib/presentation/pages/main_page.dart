@@ -2,8 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../core/security/security_service.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/datasources/local_database.dart';
+import 'lock_screen.dart';
 import '../bloc/diary_bloc.dart';
 import '../bloc/reminder_bloc.dart';
 import 'planner_page.dart';
@@ -20,11 +21,14 @@ class MainPage extends StatefulWidget {
   State<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
+class _MainPageState extends State<MainPage>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   int _currentIndex = 2; // Home is default (Center)
-  final SecurityService _securityService = GetIt.I<SecurityService>();
+  final LocalDatabase _localDb = GetIt.I<LocalDatabase>();
   late AnimationController _animationController;
   late final StreamSubscription<User?> _authSubscription;
+  bool _isAppLocked = false;
+  bool _isSectionLocked = false;
 
   List<Widget> get _pages => [
         const PlannerPage(),
@@ -41,6 +45,12 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    WidgetsBinding.instance.addObserver(this);
+
+    // Initial App Lock check
+    if (_localDb.isAppLockEnabled() && _localDb.hasDiaryPin()) {
+      _isAppLocked = true;
+    }
 
     // Listen to auth changes to refresh the entire app state
     _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
@@ -55,21 +65,29 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _animationController.dispose();
     _authSubscription.cancel();
     super.dispose();
   }
 
-  Future<void> _onItemTapped(int index) async {
-    if (index == 3) {
-      // Diary Tab
-      bool isAuthenticated = await _securityService.authenticate();
-      if (isAuthenticated) {
-        _animationController.forward(from: 0);
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (_localDb.isAppLockEnabled() && _localDb.hasDiaryPin()) {
         setState(() {
-          _currentIndex = index;
+          _isAppLocked = true;
         });
       }
+    }
+  }
+
+  Future<void> _onItemTapped(int index) async {
+    if (index == 3 && _localDb.isDiaryLockEnabled() && _localDb.hasDiaryPin()) {
+      // Diary Tab with individual lock
+      setState(() {
+        _isSectionLocked = true;
+      });
     } else {
       _animationController.forward(from: 0);
       setState(() {
@@ -80,6 +98,26 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    if (_isAppLocked) {
+      return LockScreen(
+        isAppLock: true,
+        onUnlocked: () => setState(() => _isAppLocked = false),
+      );
+    }
+
+    if (_isSectionLocked) {
+      return LockScreen(
+        isAppLock: false,
+        onUnlocked: () {
+          _animationController.forward(from: 0);
+          setState(() {
+            _isSectionLocked = false;
+            _currentIndex = 3;
+          });
+        },
+      );
+    }
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(

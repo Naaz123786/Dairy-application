@@ -78,6 +78,31 @@ class DiaryRepositoryFirestoreImpl implements DiaryRepository {
     }).toList();
   }
 
+  @override
+  Future<void> sync() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    // 1. Fetch remote data
+    final remoteModels = await firestoreDatabase.getEntries();
+
+    // 2. Fetch local data
+    final localModels = localDatabase.diaryBox.values.toList();
+
+    // 3. Upload local missing items to remote
+    for (var local in localModels) {
+      bool existsRemotely = remoteModels.any((remote) => remote.id == local.id);
+      if (!existsRemotely) {
+        await firestoreDatabase.addEntry(local);
+      }
+    }
+
+    // 4. Download remote missing/updated items to local
+    for (var remote in remoteModels) {
+      await localDatabase.diaryBox.put(remote.id, remote);
+    }
+  }
+
   DiaryEntry _mapModelToEntity(DiaryEntryModel model) {
     return DiaryEntry(
       id: model.id,

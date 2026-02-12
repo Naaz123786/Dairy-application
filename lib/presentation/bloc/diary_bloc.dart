@@ -11,6 +11,8 @@ abstract class DiaryEvent extends Equatable {
 
 class LoadDiaryEntries extends DiaryEvent {}
 
+class SyncDiaryEntries extends DiaryEvent {}
+
 class AddDiaryEntry extends DiaryEvent {
   final DiaryEntry entry;
   AddDiaryEntry(this.entry);
@@ -95,6 +97,17 @@ class DiaryBloc extends Bloc<DiaryEvent, DiaryState> {
         add(LoadDiaryEntries());
       } catch (e) {
         emit(DiaryError('Failed to delete entry'));
+      }
+    });
+
+    on<SyncDiaryEntries>((event, emit) async {
+      emit(DiaryLoading());
+      try {
+        await repository.sync();
+        final entries = await repository.getEntries();
+        emit(DiaryLoaded(entries));
+      } catch (e) {
+        emit(DiaryError('Sync failed: $e'));
       }
     });
   }

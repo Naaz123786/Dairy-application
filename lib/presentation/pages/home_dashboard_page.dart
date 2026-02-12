@@ -219,19 +219,25 @@ class HomeDashboardPage extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _buildStatCard(
+                        context,
                         isDark,
                         'Routines',
                         routinesCount.toString(),
                         Icons.schedule,
+                        onTap: () =>
+                            Navigator.pushNamed(context, AppRoutes.planner),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: _buildStatCard(
+                        context,
                         isDark,
                         'Exams',
                         examsCount.toString(),
                         Icons.school,
+                        onTap: () =>
+                            Navigator.pushNamed(context, AppRoutes.planner),
                       ),
                     ),
                   ],
@@ -241,19 +247,25 @@ class HomeDashboardPage extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _buildStatCard(
+                        context,
                         isDark,
                         'Entries',
                         entriesCount.toString(),
                         Icons.book,
+                        onTap: () =>
+                            Navigator.pushNamed(context, AppRoutes.diary),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: _buildStatCard(
+                        context,
                         isDark,
                         'Birthdays',
                         birthdaysCount.toString(),
                         Icons.cake,
+                        onTap: () =>
+                            Navigator.pushNamed(context, AppRoutes.calendar),
                       ),
                     ),
                   ],
@@ -377,13 +389,14 @@ class HomeDashboardPage extends StatelessWidget {
   }
 
   Widget _buildStatCard(
+    BuildContext context,
     bool isDark,
     String title,
     String value,
-    IconData icon,
-  ) {
+    IconData icon, {
+    required VoidCallback onTap,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDark ? AppTheme.darkGrey : AppTheme.white,
         borderRadius: BorderRadius.circular(20),
@@ -394,34 +407,43 @@ class HomeDashboardPage extends StatelessWidget {
           width: 1,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.cyan.withOpacity(0.1)
-                  : Colors.cyan.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.cyan.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, size: 24, color: Colors.cyan),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  value,
+                  style: const TextStyle(
+                      fontSize: 32, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-            child: Icon(icon, size: 24, color: Colors.cyan),
           ),
-          const SizedBox(height: 16),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 14,
-              color: isDark ? Colors.grey[400] : Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -434,68 +456,71 @@ class HomeDashboardPage extends StatelessWidget {
     IconData icon,
     String? route,
   ) {
-    // ... inside _buildQuickActionCard ...
-    return GestureDetector(
-      onTap: () {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user == null) {
-          Navigator.pushNamed(context, AppRoutes.login);
-          return;
-        }
-
-        if (route != null) {
-          Navigator.pushNamed(context, route);
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: isDark ? AppTheme.darkGrey : AppTheme.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isDark
-                ? Colors.cyan.withOpacity(0.3)
-                : Colors.cyan.withOpacity(0.5),
-            width: 1,
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkGrey : AppTheme.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark
+              ? Colors.cyan.withOpacity(0.3)
+              : Colors.cyan.withOpacity(0.5),
+          width: 1,
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.cyan.withOpacity(0.1)
-                    : Colors.cyan.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, size: 24, color: Colors.cyan),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            final user = FirebaseAuth.instance.currentUser;
+            if (user == null) {
+              Navigator.pushNamed(context, AppRoutes.login);
+              return;
+            }
+
+            if (route != null) {
+              Navigator.pushNamed(context, route);
+            }
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.cyan.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                      fontSize: 13,
-                    ),
+                  child: Icon(icon, size: 24, color: Colors.cyan),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                const Icon(Icons.arrow_forward_ios, size: 18),
+              ],
             ),
-            const Icon(Icons.arrow_forward_ios, size: 18),
-          ],
+          ),
         ),
       ),
     );

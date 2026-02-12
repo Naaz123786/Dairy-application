@@ -65,4 +65,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
       images: entity.images,
     );
   }
+
+  @override
+  Future<void> sync() async {}
 }

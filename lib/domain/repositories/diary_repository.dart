@@ -6,4 +6,5 @@ abstract class DiaryRepository {
   Future<void> updateEntry(DiaryEntry entry);
   Future<void> deleteEntry(String id);
   Future<List<DiaryEntry>> searchEntries(String query);
+  Future<void> sync();
 }

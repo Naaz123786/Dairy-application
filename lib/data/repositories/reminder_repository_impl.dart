@@ -124,6 +124,31 @@ class ReminderRepositoryImpl implements ReminderRepository {
     }
   }
 
+  @override
+  Future<void> sync() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    // 1. Fetch remote data
+    final remoteModels = await firestoreDatabase.getReminders();
+
+    // 2. Fetch local data
+    final localModels = localDatabase.remindersBox.values.toList();
+
+    // 3. Upload local missing items to remote
+    for (var local in localModels) {
+      bool existsRemotely = remoteModels.any((remote) => remote.id == local.id);
+      if (!existsRemotely) {
+        await firestoreDatabase.addReminder(local);
+      }
+    }
+
+    // 4. Download remote items to local
+    for (var remote in remoteModels) {
+      await localDatabase.remindersBox.put(remote.id, remote);
+    }
+  }
+
   Reminder _mapModelToEntity(ReminderModel model) {
     return Reminder(
       id: model.id,

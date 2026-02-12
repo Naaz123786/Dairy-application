@@ -15,6 +15,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -303,10 +304,17 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
     try {
       if (_isSignUp) {
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        final userCredential =
+            await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
+
+        if (userCredential.user != null && _nameController.text.isNotEmpty) {
+          await userCredential.user!
+              .updateProfile(displayName: _nameController.text.trim());
+          await userCredential.user!.reload();
+        }
       } else {
         await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: _emailController.text.trim(),
@@ -367,6 +375,20 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               Icon(Icons.lock_outline, size: 80, color: primaryColor),
               const SizedBox(height: 32),
+              if (_isSignUp) ...[
+                TextField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Full Name',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: const Icon(Icons.person),
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                ),
+                const SizedBox(height: 16),
+              ],
               TextField(
                 controller: _emailController,
                 decoration: InputDecoration(

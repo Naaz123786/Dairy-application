@@ -11,6 +11,11 @@ class LocalDatabase {
   static const String _onboardingCompleteKey = 'onboarding_complete';
   static const String _diaryPinKey = 'diary_pin';
   static const String _lockTypeKey = 'lock_type'; // 'pin' or 'password'
+  static const String _isAppLockEnabledKey =
+      'is_app_lock_enabled'; // Global lock
+  static const String _isDiaryLockEnabledKey =
+      'is_diary_lock_enabled'; // Section lock
+  static const String _isBiometricEnabledKey = 'is_biometric_enabled';
   static const String _themeModeKey = 'theme_mode';
   static const String _keyStorageKey = 'hive_encryption_key';
 
@@ -83,6 +88,33 @@ class LocalDatabase {
 
   Future<void> setLockType(String type) async {
     await _settingsBox?.put(_lockTypeKey, type);
+  }
+
+  bool isAppLockEnabled() {
+    return _settingsBox?.get(_isAppLockEnabledKey, defaultValue: false) ??
+        false;
+  }
+
+  Future<void> setAppLockEnabled(bool enabled) async {
+    await _settingsBox?.put(_isAppLockEnabledKey, enabled);
+  }
+
+  bool isDiaryLockEnabled() {
+    return _settingsBox?.get(_isDiaryLockEnabledKey, defaultValue: false) ??
+        false;
+  }
+
+  Future<void> setDiaryLockEnabled(bool enabled) async {
+    await _settingsBox?.put(_isDiaryLockEnabledKey, enabled);
+  }
+
+  bool isBiometricEnabled() {
+    return _settingsBox?.get(_isBiometricEnabledKey, defaultValue: false) ??
+        false;
+  }
+
+  Future<void> setBiometricEnabled(bool enabled) async {
+    await _settingsBox?.put(_isBiometricEnabledKey, enabled);
   }
 
   String getThemeMode() {

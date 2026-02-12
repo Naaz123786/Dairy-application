@@ -1,13 +1,35 @@
+import 'package:local_auth/local_auth.dart';
+import 'package:flutter/services.dart';
+
 class SecurityService {
-  // final LocalAuthentication auth = LocalAuthentication();
+  final LocalAuthentication _auth = LocalAuthentication();
 
   Future<bool> canCheckBiometrics() async {
-    return false; // Stub for Web
+    try {
+      final bool canAuthenticateWithBiometrics = await _auth.canCheckBiometrics;
+      final bool canAuthenticate =
+          canAuthenticateWithBiometrics || await _auth.isDeviceSupported();
+      return canAuthenticate;
+    } catch (e) {
+      return false;
+    }
   }
 
   Future<bool> authenticate() async {
-    print("DEBUG: SecurityService.authenticate called - Bypassing");
-    // Security temporarily disabled for debugging/web compatibility
-    return true;
+    try {
+      final bool didAuthenticate = await _auth.authenticate(
+        localizedReason: 'Please authenticate to unlock the app',
+        options: const AuthenticationOptions(
+          stickyAuth: true,
+          biometricOnly: false,
+        ),
+      );
+      return didAuthenticate;
+    } on PlatformException catch (e) {
+      print('SecurityService Error: $e');
+      return false;
+    } catch (e) {
+      return false;
+    }
   }
 }

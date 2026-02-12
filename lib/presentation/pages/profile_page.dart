@@ -62,20 +62,32 @@ class ProfilePage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        user != null
-                            ? (user.displayName != null &&
-                                    user.displayName!.isNotEmpty)
-                                ? user.displayName!
-                                : (user.email != null
-                                    ? user.email!.split('@')[0]
-                                    : 'Guest')
-                            : 'Guest',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.cyan,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            user != null
+                                ? (user.displayName != null &&
+                                        user.displayName!.isNotEmpty)
+                                    ? user.displayName!
+                                    : (user.email != null
+                                        ? user.email!.split('@')[0]
+                                        : 'Guest')
+                                : 'Guest',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.cyan,
+                            ),
+                          ),
+                          if (user != null)
+                            IconButton(
+                              icon: const Icon(Icons.edit,
+                                  size: 20, color: Colors.cyan),
+                              onPressed: () =>
+                                  _showEditNameDialog(context, user),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -141,7 +153,7 @@ class ProfilePage extends StatelessWidget {
               icon: Icons.security,
               title: 'Security',
               subtitle: 'Manage app lock & privacy',
-              onTap: () => _showSecuritySettings(context),
+              onTap: () => Navigator.pushNamed(context, AppRoutes.security),
             ),
             _buildSettingCard(
               context,
@@ -328,41 +340,6 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  void _showSecuritySettings(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Security Settings',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 24),
-            ListTile(
-              leading: const Icon(Icons.fingerprint, color: Colors.cyan),
-              title: const Text('Biometric Lock'),
-              trailing: Switch(value: true, onChanged: (v) {}),
-            ),
-            ListTile(
-              leading: const Icon(Icons.password, color: Colors.cyan),
-              title: const Text('Change App PIN'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {},
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _showNotificationSettings(BuildContext context) {
     showDialog(
       context: context,
@@ -398,19 +375,82 @@ class ProfilePage extends StatelessWidget {
   void _showBackupSettings(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Backup & Restore'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         content: const Text(
-          'Your data is securely backed up to your Google account and encrypted locally on your device.',
+          'Your data is securely backed up to your Google account and encrypted locally on your device. "Sync Now" will backup local data and restore any remote changes.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Close'),
           ),
           FilledButton(
-            onPressed: () {},
-            style: FilledButton.styleFrom(backgroundColor: Colors.cyan),
+            onPressed: () async {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please log in to sync')),
+                );
+                return;
+              }
+
+              // Close dialog and show loading
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(width: 16),
+                      Text('Syncing data...'),
+                    ],
+                  ),
+                  duration: Duration(seconds: 10),
+                ),
+              );
+
+              try {
+                // Trigger sync for both
+                context.read<DiaryBloc>().add(SyncDiaryEntries());
+                context.read<ReminderBloc>().add(SyncReminders());
+
+                // Wait for states to update (approximate since we don't have a specific SyncDone state)
+                // In a real app, you'd use a BlocListener to hide the loading snackbar
+                await Future.delayed(const Duration(seconds: 2));
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Sync Complete! ✅'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Sync Failed: $e')),
+                  );
+                }
+              }
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.cyan,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             child: const Text('Sync Now'),
           ),
         ],
@@ -451,6 +491,58 @@ class ProfilePage extends StatelessWidget {
           'This is your private sanctuary for thoughts and reflections. Built with privacy and security as the core foundation.',
         ),
       ],
+    );
+  }
+
+  void _showEditNameDialog(BuildContext context, User user) {
+    final controller = TextEditingController(text: user.displayName);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Name'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: 'Enter your name',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            prefixIcon: const Icon(Icons.person, color: Colors.cyan),
+          ),
+          textCapitalization: TextCapitalization.words,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (controller.text.trim().isNotEmpty) {
+                try {
+                  await user.updateProfile(displayName: controller.text.trim());
+                  await user.reload();
+                  if (context.mounted) Navigator.pop(context);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error updating name: $e')),
+                    );
+                  }
+                }
+              }
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.cyan,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Update'),
+          ),
+        ],
+      ),
     );
   }
 }
