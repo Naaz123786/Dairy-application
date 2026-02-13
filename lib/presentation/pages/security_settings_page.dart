@@ -122,15 +122,25 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
                 return;
               }
               await _localDb.setAppLockEnabled(val);
+
+              // Hierarchical Logic: If Global is ON, turn OFF Individual Diary Lock
+              if (val) {
+                await _localDb.setDiaryLockEnabled(false);
+                _diaryLockEnabled = false;
+              }
+
               setState(() => _appLockEnabled = val);
             },
             isDark: isDark,
           ),
           _buildSettingTile(
             title: 'Individual Diary Lock',
-            subtitle: 'Secure the Diary section only',
+            subtitle: _appLockEnabled
+                ? 'Already covered by Global Lock'
+                : 'Secure the Diary section only',
             icon: Icons.book_online_outlined,
             value: _diaryLockEnabled,
+            enabled: !_appLockEnabled, // Disable if Global is on
             onChanged: (val) async {
               if (val && !_localDb.hasDiaryPin()) {
                 _showPinDialog();
@@ -172,6 +182,52 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
             onTap: _showPinDialog,
           ),
           const SizedBox(height: 32),
+          if (_localDb.hasDiaryPin())
+            TextButton.icon(
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Disable Security?'),
+                    content: const Text(
+                        'This will remove your PIN and disable all app locks. Are you sure?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Disable',
+                            style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirm == true) {
+                  await _localDb.removeDiaryPin();
+                  setState(() {
+                    _appLockEnabled = false;
+                    _diaryLockEnabled = false;
+                  });
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('All security locks disabled')),
+                    );
+                  }
+                }
+              },
+              icon:
+                  const Icon(Icons.security_update_warning, color: Colors.red),
+              label: const Text('Disable All Security',
+                  style: TextStyle(color: Colors.red)),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -222,27 +278,32 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
     required bool value,
     required ValueChanged<bool> onChanged,
     required bool isDark,
+    bool enabled = true,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkGrey : Colors.grey[100],
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: SwitchListTile(
-        secondary: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.cyan.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: Colors.cyan),
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.5,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: isDark ? AppTheme.darkGrey : Colors.grey[100],
+          borderRadius: BorderRadius.circular(15),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-        value: value,
-        onChanged: onChanged,
-        activeColor: Colors.cyan,
+        child: SwitchListTile(
+          secondary: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.cyan.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: Colors.cyan),
+          ),
+          title:
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+          subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+          value: value,
+          onChanged: enabled ? onChanged : null,
+          activeColor: Colors.cyan,
+        ),
       ),
     );
   }

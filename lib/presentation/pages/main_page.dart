@@ -29,6 +29,7 @@ class _MainPageState extends State<MainPage>
   late final StreamSubscription<User?> _authSubscription;
   bool _isAppLocked = false;
   bool _isSectionLocked = false;
+  bool _authenticatedThisSession = false;
 
   List<Widget> get _pages => [
         const PlannerPage(),
@@ -77,13 +78,22 @@ class _MainPageState extends State<MainPage>
       if (_localDb.isAppLockEnabled() && _localDb.hasDiaryPin()) {
         setState(() {
           _isAppLocked = true;
+          _authenticatedThisSession = false; // Reset session on re-lock
         });
       }
     }
   }
 
   Future<void> _onItemTapped(int index) async {
-    if (index == 3 && _localDb.isDiaryLockEnabled() && _localDb.hasDiaryPin()) {
+    final isDiaryTab = index == 3;
+    final isGlobalLockActive = _localDb.isAppLockEnabled();
+    final isDiaryLockActive = _localDb.isDiaryLockEnabled();
+
+    if (isDiaryTab &&
+        !isGlobalLockActive && // Only check individual lock if Global is OFF
+        isDiaryLockActive &&
+        _localDb.hasDiaryPin() &&
+        !_authenticatedThisSession) {
       // Diary Tab with individual lock
       setState(() {
         _isSectionLocked = true;
@@ -101,7 +111,10 @@ class _MainPageState extends State<MainPage>
     if (_isAppLocked) {
       return LockScreen(
         isAppLock: true,
-        onUnlocked: () => setState(() => _isAppLocked = false),
+        onUnlocked: () => setState(() {
+          _isAppLocked = false;
+          _authenticatedThisSession = true;
+        }),
       );
     }
 
@@ -112,6 +125,7 @@ class _MainPageState extends State<MainPage>
           _animationController.forward(from: 0);
           setState(() {
             _isSectionLocked = false;
+            _authenticatedThisSession = true;
             _currentIndex = 3;
           });
         },

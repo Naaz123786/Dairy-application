@@ -80,6 +80,8 @@ class LocalDatabase {
 
   Future<void> removeDiaryPin() async {
     await _settingsBox?.delete(_diaryPinKey);
+    await _settingsBox?.put(_isAppLockEnabledKey, false);
+    await _settingsBox?.put(_isDiaryLockEnabledKey, false);
   }
 
   String getLockType() {

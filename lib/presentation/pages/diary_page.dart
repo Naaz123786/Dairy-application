@@ -7,7 +7,6 @@ import '../bloc/diary_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../data/datasources/local_database.dart';
-import '../widgets/pin_lock_view.dart';
 import '../../injection_container.dart' as di;
 
 class DiaryPage extends StatefulWidget {
@@ -19,27 +18,13 @@ class DiaryPage extends StatefulWidget {
 }
 
 class _DiaryPageState extends State<DiaryPage> {
-  bool _isUnlocked = false;
-  bool _isSettingUp = false;
   late final LocalDatabase _localDb;
 
   @override
   void initState() {
     super.initState();
     _localDb = di.sl<LocalDatabase>();
-    _isUnlocked = !_localDb.hasDiaryPin();
     context.read<DiaryBloc>().add(LoadDiaryEntries());
-  }
-
-  @override
-  void didUpdateWidget(covariant DiaryPage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isActive && !oldWidget.isActive && _localDb.hasDiaryPin()) {
-      setState(() {
-        _isUnlocked = false;
-        _isSettingUp = false;
-      });
-    }
   }
 
   @override
@@ -57,150 +42,69 @@ class _DiaryPageState extends State<DiaryPage> {
         ),
         elevation: 0,
         actions: [
-          if (_isUnlocked && !_isSettingUp) ...[
-            IconButton(
-              icon: const Icon(Icons.search),
-              onPressed: () {
-                // TODO: Implement search
-              },
-            ),
-            const SizedBox(width: 8),
-            PopupMenuButton<String>(
-              icon: Icon(
-                  _localDb.hasDiaryPin() ? Icons.lock_open : Icons.security),
-              tooltip: 'Security Settings',
-              onSelected: (value) async {
-                if (value == 'lock') {
-                  setState(() => _isUnlocked = false);
-                } else if (value == 'setup' || value == 'change') {
-                  setState(() => _isSettingUp = true);
-                } else if (value == 'remove') {
-                  _showRemovePinDialog();
-                }
-              },
-              itemBuilder: (context) => [
-                if (_localDb.hasDiaryPin()) ...[
-                  const PopupMenuItem(
-                    value: 'lock',
-                    child: ListTile(
-                      leading: Icon(Icons.lock_outline),
-                      title: Text('Lock Now'),
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                    ),
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              // TODO: Implement search
+            },
+          ),
+          const SizedBox(width: 8),
+          PopupMenuButton<String>(
+            icon: Icon(
+                _localDb.hasDiaryPin() ? Icons.lock_outline : Icons.security),
+            tooltip: 'Security Settings',
+            onSelected: (value) async {
+              if (value == 'lock') {
+                // Now handled by MainPage, but keeping for manual re-lock if needed
+                Navigator.pushNamed(context, AppRoutes.security);
+              } else if (value == 'setup') {
+                Navigator.pushNamed(context, AppRoutes.security);
+              }
+            },
+            itemBuilder: (context) => [
+              if (_localDb.hasDiaryPin()) ...[
+                const PopupMenuItem(
+                  value: 'lock',
+                  child: ListTile(
+                    leading: Icon(Icons.security),
+                    title: Text('Security Settings'),
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
                   ),
-                  const PopupMenuItem(
-                    value: 'change',
-                    child: ListTile(
-                      leading: Icon(Icons.password),
-                      title: Text('Change PIN/Password'),
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                    ),
+                ),
+              ] else ...[
+                const PopupMenuItem(
+                  value: 'setup',
+                  child: ListTile(
+                    leading: Icon(Icons.security),
+                    title: Text('Setup Privacy Lock'),
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
                   ),
-                  const PopupMenuItem(
-                    value: 'remove',
-                    child: ListTile(
-                      leading: Icon(Icons.no_encryption_gmailerrorred,
-                          color: Colors.red),
-                      title: Text('Remove Lock',
-                          style: TextStyle(color: Colors.red)),
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                    ),
-                  ),
-                ] else ...[
-                  const PopupMenuItem(
-                    value: 'setup',
-                    child: ListTile(
-                      leading: Icon(Icons.security),
-                      title: Text('Setup Privacy Lock'),
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                    ),
-                  ),
-                ],
+                ),
               ],
-            ),
-          ] else if (_isSettingUp)
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () {
-                setState(() => _isSettingUp = false);
-              },
-            ),
+            ],
+          ),
         ],
       ),
-      floatingActionButton: _isUnlocked && !_isSettingUp
-          ? FloatingActionButton.extended(
-              heroTag: 'diary_fab',
-              onPressed: () {
-                final user = FirebaseAuth.instance.currentUser;
-                if (user == null) {
-                  Navigator.pushNamed(context, AppRoutes.login);
-                  return;
-                }
-                Navigator.pushNamed(context, AppRoutes.diaryEdit);
-              },
-              label: const Text('Write'),
-              icon: const Icon(Icons.create),
-            )
-          : null,
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'diary_fab',
+        onPressed: () {
+          final user = FirebaseAuth.instance.currentUser;
+          if (user == null) {
+            Navigator.pushNamed(context, AppRoutes.login);
+            return;
+          }
+          Navigator.pushNamed(context, AppRoutes.diaryEdit);
+        },
+        label: const Text('Write'),
+        icon: const Icon(Icons.create),
+      ),
       body: _buildBody(isDark),
     );
   }
 
-  void _showRemovePinDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Remove Lock?'),
-        content: const Text(
-          'This will disable the privacy lock for your diary. Anyone with access to your phone will be able to read your entries.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              await _localDb.removeDiaryPin();
-              Navigator.pop(context);
-              setState(() {
-                _isUnlocked = true;
-              });
-              ScaffoldMessenger.of(this.context).showSnackBar(
-                const SnackBar(content: Text('Lock removed successfully')),
-              );
-            },
-            child: const Text('Remove', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildBody(bool isDark) {
-    if (!_isUnlocked || _isSettingUp) {
-      final hasPin = _localDb.hasDiaryPin();
-      return PinLockView(
-        isSetup: !hasPin || _isSettingUp,
-        initialLockType: _localDb.getLockType(),
-        savedPin: _localDb.getDiaryPin(),
-        onCorrectPin: (secret, type) async {
-          if (!hasPin || _isSettingUp) {
-            await _localDb.setDiaryPin(secret);
-            await _localDb.setLockType(type);
-          }
-          setState(() {
-            _isUnlocked = true;
-            _isSettingUp = false;
-          });
-        },
-      );
-    }
-
     return BlocBuilder<DiaryBloc, DiaryState>(
       builder: (context, state) {
         if (state is DiaryLoading) {
