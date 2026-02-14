@@ -46,6 +46,8 @@ class HomeDashboardPage extends StatelessWidget {
             const SizedBox(height: 16),
             _buildStatsRow(isDark),
             const SizedBox(height: 32),
+            _buildMoodAnalytics(context, isDark),
+            const SizedBox(height: 32),
             _buildBirthdaySection(isDark),
             const SizedBox(height: 32),
             const Text(
@@ -524,5 +526,165 @@ class HomeDashboardPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildMoodAnalytics(BuildContext context, bool isDark) {
+    return BlocBuilder<DiaryBloc, DiaryState>(builder: (context, state) {
+      if (state is! DiaryLoaded || state.entries.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      // Get entries from the last 7 days
+      final now = DateTime.now();
+      final sevenDaysAgo = now.subtract(const Duration(days: 7));
+      final recentEntries = state.entries
+          .where((entry) => entry.date.isAfter(sevenDaysAgo))
+          .toList();
+
+      if (recentEntries.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      // Count moods
+      final moodCounts = <String, int>{};
+      for (var entry in recentEntries) {
+        if (entry.mood.isNotEmpty) {
+          moodCounts[entry.mood] = (moodCounts[entry.mood] ?? 0) + 1;
+        }
+      }
+
+      if (moodCounts.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      // Get mood colors
+      final moodColors = {
+        'Happy': Colors.amber,
+        'Sad': Colors.blue,
+        'Excited': Colors.purple,
+        'Tired': Colors.grey,
+        'Neutral': Colors.teal,
+        'Angry': Colors.red,
+      };
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Mood Analytics',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.cyan,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark ? AppTheme.darkGrey : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Colors.cyan.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Last 7 Days',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...moodCounts.entries.map((entry) {
+                  final percentage =
+                      (entry.value / recentEntries.length * 100).round();
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: moodColors[entry.key] ?? Colors.cyan,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  entry.key,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              '$percentage%',
+                              style: TextStyle(
+                                color: isDark
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: entry.value / recentEntries.length,
+                            backgroundColor:
+                                isDark ? Colors.grey[800] : Colors.grey[200],
+                            valueColor: AlwaysStoppedAnimation(
+                              moodColors[entry.key] ?? Colors.cyan,
+                            ),
+                            minHeight: 8,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                const SizedBox(height: 8),
+                Divider(color: Colors.cyan.withOpacity(0.2)),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total Entries',
+                      style: TextStyle(
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                    Text(
+                      '${recentEntries.length}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.cyan,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    });
   }
 }

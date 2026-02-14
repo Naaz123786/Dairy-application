@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../data/datasources/local_database.dart';
 import '../../injection_container.dart' as di;
+import '../../core/services/pdf_service.dart';
 
 class DiaryPage extends StatefulWidget {
   final bool isActive;
@@ -19,6 +20,9 @@ class DiaryPage extends StatefulWidget {
 
 class _DiaryPageState extends State<DiaryPage> {
   late final LocalDatabase _localDb;
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -28,24 +32,52 @@ class _DiaryPageState extends State<DiaryPage> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'My Diary',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.cyan,
-          ),
-        ),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: const TextStyle(color: Colors.cyan),
+                decoration: const InputDecoration(
+                  hintText: 'Search entries...',
+                  hintStyle: TextStyle(color: Colors.grey),
+                  border: InputBorder.none,
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.toLowerCase();
+                  });
+                },
+              )
+            : const Text(
+                'My Diary',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.cyan,
+                ),
+              ),
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
+            icon: Icon(_isSearching ? Icons.close : Icons.search),
             onPressed: () {
-              // TODO: Implement search
+              setState(() {
+                _isSearching = !_isSearching;
+                if (!_isSearching) {
+                  _searchController.clear();
+                  _searchQuery = '';
+                }
+              });
             },
           ),
           const SizedBox(width: 8),
@@ -102,6 +134,79 @@ class _DiaryPageState extends State<DiaryPage> {
       ),
       body: _buildBody(isDark),
     );
+  }
+
+  Future<void> _exportToPdf(DiaryEntry entry) async {
+    try {
+      final pdfService = PdfService();
+
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: Colors.cyan),
+        ),
+      );
+
+      // Generate PDF
+      final pdfBytes = await pdfService.generateEntryPdf(entry);
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      // Show options dialog
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Export PDF'),
+            content: const Text('Choose an action:'),
+            actions: [
+              TextButton.icon(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await pdfService.sharePdf(pdfBytes, entry.title);
+                },
+                icon: const Icon(Icons.share),
+                label: const Text('Share'),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await pdfService.printPdf(pdfBytes);
+                },
+                icon: const Icon(Icons.print),
+                label: const Text('Print'),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  final path = await pdfService.savePdfToDevice(
+                    pdfBytes,
+                    entry.title,
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Saved to: $path')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.save),
+                label: const Text('Save'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading if open
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
   }
 
   Widget _buildBody(bool isDark) {
@@ -163,11 +268,54 @@ class _DiaryPageState extends State<DiaryPage> {
             );
           }
 
+          // Filter entries based on search query
+          final filteredEntries = _searchQuery.isEmpty
+              ? state.entries
+              : state.entries.where((entry) {
+                  return entry.title.toLowerCase().contains(_searchQuery) ||
+                      entry.content.toLowerCase().contains(_searchQuery) ||
+                      entry.mood.toLowerCase().contains(_searchQuery);
+                }).toList();
+
+          if (filteredEntries.isEmpty && _searchQuery.isNotEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.search_off,
+                    size: 80,
+                    color: isDark
+                        ? AppTheme.white.withOpacity(0.2)
+                        : AppTheme.black.withOpacity(0.2),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No entries found',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.cyan,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Try a different search term',
+                    style: TextStyle(
+                      color: isDark
+                          ? AppTheme.white.withOpacity(0.5)
+                          : AppTheme.black.withOpacity(0.5),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: state.entries.length,
+            itemCount: filteredEntries.length,
             itemBuilder: (context, index) {
-              final entry = state.entries[index];
+              final entry = filteredEntries[index];
               return _buildDiaryCard(context, entry, isDark);
             },
           );
@@ -279,6 +427,15 @@ class _DiaryPageState extends State<DiaryPage> {
                           arguments: entry,
                         );
                       },
+                    ),
+                    const SizedBox(width: 12),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: const Icon(Icons.picture_as_pdf,
+                          size: 18, color: Colors.green),
+                      onPressed: () => _exportToPdf(entry),
                     ),
                     const SizedBox(width: 12),
                     IconButton(
