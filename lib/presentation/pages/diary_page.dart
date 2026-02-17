@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/routes/app_routes.dart';
@@ -406,7 +409,24 @@ class _DiaryPageState extends State<DiaryPage> {
                     fontSize: 12,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
+                if (entry.content.isNotEmpty)
+                  Text(
+                    entry.content,
+                    style: TextStyle(
+                      color: isDark
+                          ? AppTheme.white.withOpacity(0.7)
+                          : AppTheme.black.withOpacity(0.7),
+                      fontSize: 14,
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                if (entry.images.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildGalleryGrid(context, entry.images, isDark),
+                ],
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -457,6 +477,174 @@ class _DiaryPageState extends State<DiaryPage> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGalleryGrid(
+    BuildContext context,
+    List<String> images,
+    bool isDark,
+  ) {
+    final count = images.length;
+    if (count == 0) return const SizedBox.shrink();
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final height = width * 0.6; // Max height for the grid
+
+          if (count == 1) {
+            return _buildImage(context, images[0], width, height);
+          } else if (count == 2) {
+            return SizedBox(
+              height: height,
+              child: Row(
+                children: [
+                  Expanded(
+                      child: _buildImage(context, images[0], null, height)),
+                  const SizedBox(width: 2),
+                  Expanded(
+                      child: _buildImage(context, images[1], null, height)),
+                ],
+              ),
+            );
+          } else if (count == 3) {
+            return SizedBox(
+              height: height,
+              child: Row(
+                children: [
+                  Expanded(
+                      child: _buildImage(context, images[0], null, height)),
+                  const SizedBox(width: 2),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Expanded(
+                            child: _buildImage(context, images[1], null, null)),
+                        const SizedBox(height: 2),
+                        Expanded(
+                            child: _buildImage(context, images[2], null, null)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            return SizedBox(
+              height: height,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Expanded(
+                            child: _buildImage(context, images[0], null, null)),
+                        const SizedBox(height: 2),
+                        Expanded(
+                            child: _buildImage(context, images[1], null, null)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Expanded(
+                            child: _buildImage(context, images[2], null, null)),
+                        const SizedBox(height: 2),
+                        Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            _buildImage(context, images[3], null, null),
+                            if (count > 4)
+                              Container(
+                                color: Colors.black54,
+                                child: Center(
+                                  child: Text(
+                                    '+${count - 4}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildImage(
+    BuildContext context,
+    String path,
+    double? width,
+    double? height,
+  ) {
+    ImageProvider imageProvider;
+    if (path.startsWith('data:image')) {
+      final base64String = path.split(',').last;
+      imageProvider = MemoryImage(base64Decode(base64String));
+    } else if (path.startsWith('http')) {
+      imageProvider = NetworkImage(path);
+    } else if (kIsWeb) {
+      imageProvider = NetworkImage(path);
+    } else {
+      imageProvider = FileImage(File(path));
+    }
+
+    return InkWell(
+      onTap: () => _showFullScreenImage(context, path),
+      child: Image(
+        image: imageProvider,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: Colors.grey[300],
+            child: const Icon(Icons.error_outline, color: Colors.red),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showFullScreenImage(BuildContext context, String path) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog.fullscreen(
+        backgroundColor: Colors.black,
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                child: _buildImage(context, path, null, null),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              right: 20,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
         ),
       ),
     );
