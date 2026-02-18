@@ -33,7 +33,7 @@ class HomeDashboardPage extends StatelessWidget {
           children: [
             _buildGreeting(isDark),
             const SizedBox(height: 24),
-            _buildQuoteCard(isDark),
+            _buildAffirmationCard(isDark),
             const SizedBox(height: 32),
             const Text(
               'Quick Stats',
@@ -302,87 +302,191 @@ class HomeDashboardPage extends StatelessWidget {
                 : (user.email != null ? user.email!.split('@')[0] : 'Guest')
             : 'Guest';
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ShaderMask(
-              shaderCallback: (bounds) => const LinearGradient(
-                colors: [Colors.cyan, Colors.lightBlueAccent],
-              ).createShader(bounds),
-              child: Text(
-                '$greeting, $name',
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
-                  color: Colors.white,
+        return BlocBuilder<DiaryBloc, DiaryState>(
+          builder: (context, state) {
+            int streak = 0;
+            if (state is DiaryLoaded) {
+              streak = _calculateStreak(state.entries);
+            }
+
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ShaderMask(
+                        shaderCallback: (bounds) => const LinearGradient(
+                          colors: [Colors.cyan, Colors.lightBlueAccent],
+                        ).createShader(bounds),
+                        child: Text(
+                          '$greeting, $name',
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        DateFormat.yMMMMEEEEd().format(DateTime.now()),
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              DateFormat.yMMMMEEEEd().format(DateTime.now()),
-              style: TextStyle(
-                fontSize: 15,
-                color: isDark ? Colors.grey[400] : Colors.grey[600],
-              ),
-            ),
-          ],
+                if (streak > 0) _buildStreakBadge(streak, isDark),
+              ],
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildQuoteCard(bool isDark) {
-    final quotes = [
-      "Believe you can and you're halfway there.",
-      "The only way to do great work is to love what you do.",
-      "Your time is limited, don't waste it living someone else's life.",
-      "Success is not final, failure is not fatal: It is the courage to continue that counts.",
-      "The future belongs to those who believe in the beauty of their dreams.",
-      "Dream big, work hard, stay focused.",
-      "Every day is a new beginning.",
+  int _calculateStreak(List<dynamic> entries) {
+    if (entries.isEmpty) return 0;
+
+    final dates = entries
+        .map((e) => DateTime(e.date.year, e.date.month, e.date.day))
+        .toSet()
+        .toList()
+      ..sort((a, b) => b.compareTo(a));
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    if (dates.first.isBefore(yesterday)) return 0;
+
+    int streak = 1;
+    for (int i = 1; i < dates.length; i++) {
+      if (dates[i - 1].difference(dates[i]).inDays == 1) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }
+
+  Widget _buildStreakBadge(int streak, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.orange.shade400, Colors.red.shade400],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.orange.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            '🔥',
+            style: TextStyle(fontSize: 18),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$streak Day Streak',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAffirmationCard(bool isDark) {
+    final affirmations = [
+      "I am capable of achieving anything I set my mind to.",
+      "Today is a gift, and I will make the most of it.",
+      "I choose to focus on the positive and let go of the rest.",
+      "My potential is limitless, and I am growing every day.",
+      "I am worthy of love, happiness, and all good things.",
+      "I believe in myself and my ability to succeed.",
+      "I am grateful for the progress I've made and the person I'm becoming.",
+      "Every challenge I face is an opportunity for growth.",
+      "I have the power to create the life I want.",
+      "I am at peace with my past and excited about my future.",
     ];
-    final randomQuote = quotes[Random().nextInt(quotes.length)];
+    final randomAffirmation =
+        affirmations[Random().nextInt(affirmations.length)];
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       decoration: BoxDecoration(
         color: isDark ? AppTheme.darkGrey : AppTheme.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: isDark
-              ? Colors.cyan.withOpacity(0.3)
-              : Colors.cyan.withOpacity(0.5),
-          width: 2,
+          color: Colors.cyan.withOpacity(0.2),
+          width: 1.5,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.cyan.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.cyan.withOpacity(0.1)
-                  : Colors.cyan.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.format_quote,
-              color: Colors.cyan,
-              size: 28,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.spa, color: Colors.cyan.withOpacity(0.5), size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'DAILY AFFIRMATION',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2,
+                  color: Colors.cyan.withOpacity(0.8),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.spa, color: Colors.cyan.withOpacity(0.5), size: 18),
+            ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(
-            randomQuote,
+            randomAffirmation,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 18,
-              fontStyle: FontStyle.italic,
-              fontWeight: FontWeight.w500,
-              height: 1.5,
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
+              letterSpacing: -0.2,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            height: 3,
+            width: 40,
+            decoration: BoxDecoration(
+              color: Colors.cyan.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(2),
             ),
           ),
         ],

@@ -101,6 +101,9 @@ class DiaryRepositoryFirestoreImpl implements DiaryRepository {
     for (var remote in remoteModels) {
       await localDatabase.diaryBox.put(remote.id, remote);
     }
+
+    // 5. Update last sync time
+    await localDatabase.setLastSyncTime(DateTime.now());
   }
 
   DiaryEntry _mapModelToEntity(DiaryEntryModel model) {

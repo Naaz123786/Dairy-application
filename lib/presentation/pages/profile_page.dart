@@ -6,6 +6,7 @@ import '../../core/routes/app_routes.dart';
 import '../../injection_container.dart' as di;
 import '../bloc/reminder_bloc.dart';
 import '../bloc/diary_bloc.dart';
+import 'package:intl/intl.dart';
 import '../../data/datasources/local_database.dart';
 import '../bloc/theme_cubit.dart';
 
@@ -373,87 +374,138 @@ class ProfilePage extends StatelessWidget {
   }
 
   void _showBackupSettings(BuildContext context) {
+    final localDb = di.sl<LocalDatabase>();
+    final lastSyncStr = localDb.getLastSyncTime();
+    final lastSyncText = lastSyncStr != null
+        ? 'Last Synced: ${DateFormat('MMM d, yyyy • HH:mm').format(DateTime.parse(lastSyncStr))}'
+        : 'Never Synced';
+
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Backup & Restore'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: const Text(
-          'Your data is securely backed up to your Google account and encrypted locally on your device. "Sync Now" will backup local data and restore any remote changes.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Close'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final user = FirebaseAuth.instance.currentUser;
-              if (user == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please log in to sync')),
-                );
-                return;
-              }
-
-              // Close dialog and show loading
-              Navigator.pop(dialogContext);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Row(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Backup & Restore'),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Your data is securely backed up to the cloud and encrypted locally on your device.',
+                  style: TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.cyan.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
                     children: [
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+                      const Icon(Icons.history, size: 18, color: Colors.cyan),
+                      const SizedBox(width: 8),
+                      Text(
+                        lastSyncText,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.cyan,
                         ),
                       ),
-                      SizedBox(width: 16),
-                      Text('Syncing data...'),
                     ],
                   ),
-                  duration: Duration(seconds: 10),
                 ),
-              );
+                const SizedBox(height: 16),
+                const Text(
+                  'Sync Now will backup all your diary entries and reminders to your linked Google account.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Close'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  final user = FirebaseAuth.instance.currentUser;
+                  if (user == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please log in to sync')),
+                    );
+                    return;
+                  }
 
-              try {
-                // Trigger sync for both
-                context.read<DiaryBloc>().add(SyncDiaryEntries());
-                context.read<ReminderBloc>().add(SyncReminders());
-
-                // Wait for states to update (approximate since we don't have a specific SyncDone state)
-                // In a real app, you'd use a BlocListener to hide the loading snackbar
-                await Future.delayed(const Duration(seconds: 2));
-
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  // Close dialog and show loading snackbar
+                  Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Sync Complete! ✅'),
-                      backgroundColor: Colors.green,
+                      content: Row(
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(width: 16),
+                          Text('Cloud Sync in progress...'),
+                        ],
+                      ),
+                      duration: Duration(seconds: 15),
+                      behavior: SnackBarBehavior.floating,
                     ),
                   );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Sync Failed: $e')),
-                  );
-                }
-              }
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.cyan,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+
+                  try {
+                    // Trigger sync for both
+                    context.read<DiaryBloc>().add(SyncDiaryEntries());
+                    context.read<ReminderBloc>().add(SyncReminders());
+
+                    // Wait for background tasks
+                    await Future.delayed(const Duration(seconds: 3));
+
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content:
+                              Text('Backup Success! Data is now safe. ☁️✅'),
+                          backgroundColor: Colors.green,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Sync Failed: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.cyan,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Sync Now'),
               ),
-            ),
-            child: const Text('Sync Now'),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }

@@ -17,6 +17,7 @@ class LocalDatabase {
       'is_diary_lock_enabled'; // Section lock
   static const String _isBiometricEnabledKey = 'is_biometric_enabled';
   static const String _themeModeKey = 'theme_mode';
+  static const String _lastSyncTimeKey = 'last_sync_time';
   static const String _keyStorageKey = 'hive_encryption_key';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
@@ -125,6 +126,14 @@ class LocalDatabase {
 
   Future<void> setThemeMode(String mode) async {
     await _settingsBox?.put(_themeModeKey, mode);
+  }
+
+  String? getLastSyncTime() {
+    return _settingsBox?.get(_lastSyncTimeKey);
+  }
+
+  Future<void> setLastSyncTime(DateTime time) async {
+    await _settingsBox?.put(_lastSyncTimeKey, time.toIso8601String());
   }
 
   Future<void> clearAllData() async {

@@ -147,6 +147,9 @@ class ReminderRepositoryImpl implements ReminderRepository {
     for (var remote in remoteModels) {
       await localDatabase.remindersBox.put(remote.id, remote);
     }
+
+    // 5. Update last sync time
+    await localDatabase.setLastSyncTime(DateTime.now());
   }
 
   Reminder _mapModelToEntity(ReminderModel model) {
