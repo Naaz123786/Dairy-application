@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -7,12 +8,36 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
 import '../../domain/entities/diary_entry.dart';
 
 class PdfService {
   /// Generate PDF from a diary entry
   Future<Uint8List> generateEntryPdf(DiaryEntry entry) async {
     final pdf = pw.Document();
+
+    // Pre-load images to Uint8List
+    final List<Uint8List> imageBytesList = [];
+    for (final path in entry.images.take(4)) {
+      try {
+        if (path.startsWith('data:image')) {
+          final base64String = path.split(',').last;
+          imageBytesList.add(base64Decode(base64String));
+        } else if (path.startsWith('http')) {
+          final response = await http.get(Uri.parse(path));
+          if (response.statusCode == 200) {
+            imageBytesList.add(response.bodyBytes);
+          }
+        } else {
+          final file = File(path);
+          if (await file.exists()) {
+            imageBytesList.add(await file.readAsBytes());
+          }
+        }
+      } catch (e) {
+        print('Error loading image for PDF: $e');
+      }
+    }
 
     pdf.addPage(
       pw.Page(
@@ -87,7 +112,7 @@ class PdfService {
               pw.SizedBox(height: 20),
 
               // Images (if any)
-              if (entry.images.isNotEmpty) ...[
+              if (imageBytesList.isNotEmpty) ...[
                 pw.Divider(),
                 pw.SizedBox(height: 10),
                 pw.Text(
@@ -100,20 +125,22 @@ class PdfService {
                 ),
                 pw.SizedBox(height: 10),
                 pw.Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: entry.images.take(4).map((imagePath) {
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: imageBytesList.map((bytes) {
                     return pw.Container(
-                      width: 100,
-                      height: 100,
+                      width: 160,
+                      height: 160,
                       decoration: pw.BoxDecoration(
                         border: pw.Border.all(color: PdfColors.grey300),
                         borderRadius: pw.BorderRadius.circular(8),
                       ),
-                      child: pw.Center(
-                        child: pw.Text(
-                          'Image',
-                          style: const pw.TextStyle(fontSize: 12),
+                      child: pw.ClipRRect(
+                        horizontalRadius: 8,
+                        verticalRadius: 8,
+                        child: pw.Image(
+                          pw.MemoryImage(bytes),
+                          fit: pw.BoxFit.cover,
                         ),
                       ),
                     );

@@ -9,8 +9,21 @@ import '../../domain/entities/reminder.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/routes/app_routes.dart';
 
-class HomeDashboardPage extends StatelessWidget {
+class HomeDashboardPage extends StatefulWidget {
   const HomeDashboardPage({super.key});
+
+  @override
+  State<HomeDashboardPage> createState() => _HomeDashboardPageState();
+}
+
+class _HomeDashboardPageState extends State<HomeDashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Ensure data is loaded when dashboard is shown
+    context.read<DiaryBloc>().add(LoadDiaryEntries());
+    context.read<ReminderBloc>().add(LoadReminders());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,68 +38,86 @@ class HomeDashboardPage extends StatelessWidget {
             color: Colors.cyan,
           ),
         ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              context.read<DiaryBloc>().add(LoadDiaryEntries());
+              context.read<ReminderBloc>().add(LoadReminders());
+            },
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildGreeting(isDark),
-            const SizedBox(height: 24),
-            _buildAffirmationCard(isDark),
-            const SizedBox(height: 32),
-            const Text(
-              'Quick Stats',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.cyan,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          context.read<DiaryBloc>().add(LoadDiaryEntries());
+          context.read<ReminderBloc>().add(LoadReminders());
+        },
+        color: Colors.cyan,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildGreeting(isDark),
+              const SizedBox(height: 24),
+              _buildAffirmationCard(isDark),
+              const SizedBox(height: 32),
+              const Text(
+                'Quick Stats',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.cyan,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            _buildStatsRow(isDark),
-            const SizedBox(height: 32),
-            _buildMoodAnalytics(context, isDark),
-            const SizedBox(height: 32),
-            _buildBirthdaySection(isDark),
-            const SizedBox(height: 32),
-            const Text(
-              'Quick Actions',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.cyan,
+              const SizedBox(height: 16),
+              _buildStatsRow(isDark),
+              const SizedBox(height: 32),
+              _buildMoodAnalytics(context, isDark),
+              const SizedBox(height: 32),
+              _buildBirthdaySection(isDark),
+              const SizedBox(height: 32),
+              const Text(
+                'Quick Actions',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.cyan,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            _buildQuickActionCard(
-              context,
-              isDark,
-              'Write a Diary Entry',
-              'Capture your thoughts',
-              Icons.edit_note,
-              AppRoutes.diaryEdit,
-            ),
-            const SizedBox(height: 12),
-            _buildQuickActionCard(
-              context,
-              isDark,
-              'Add a Routine',
-              'Build better habits',
-              Icons.schedule,
-              AppRoutes.planner,
-            ),
-            const SizedBox(height: 12),
-            _buildQuickActionCard(
-              context,
-              isDark,
-              'Add Birthday',
-              'Never forget special days',
-              Icons.cake,
-              AppRoutes.calendar,
-            ),
-            const SizedBox(height: 80),
-          ],
+              const SizedBox(height: 16),
+              _buildQuickActionCard(
+                context,
+                isDark,
+                'Write a Diary Entry',
+                'Capture your thoughts',
+                Icons.edit_note,
+                AppRoutes.diaryEdit,
+              ),
+              const SizedBox(height: 12),
+              _buildQuickActionCard(
+                context,
+                isDark,
+                'Add a Routine',
+                'Build better habits',
+                Icons.schedule,
+                AppRoutes.planner,
+              ),
+              const SizedBox(height: 12),
+              _buildQuickActionCard(
+                context,
+                isDark,
+                'Add Birthday',
+                'Never forget special days',
+                Icons.cake,
+                AppRoutes.calendar,
+              ),
+              const SizedBox(height: 80),
+            ],
+          ),
         ),
       ),
     );
@@ -323,25 +354,28 @@ class HomeDashboardPage extends StatelessWidget {
                         child: Text(
                           '$greeting, $name',
                           style: const TextStyle(
-                            fontSize: 28,
+                            fontSize: 24, // Reduced from 28
                             fontWeight: FontWeight.bold,
                             letterSpacing: -0.5,
                             color: Colors.white,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       Text(
                         DateFormat.yMMMMEEEEd().format(DateTime.now()),
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 13, // Reduced from 15
                           color: isDark ? Colors.grey[400] : Colors.grey[600],
                         ),
                       ),
                     ],
                   ),
                 ),
-                if (streak > 0) _buildStreakBadge(streak, isDark),
+                const SizedBox(width: 8),
+                _buildStreakBadge(streak, isDark),
               ],
             );
           },
@@ -363,6 +397,7 @@ class HomeDashboardPage extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
 
+    // If latest entry is older than yesterday, streak is broken
     if (dates.first.isBefore(yesterday)) return 0;
 
     int streak = 1;
@@ -377,39 +412,56 @@ class HomeDashboardPage extends StatelessWidget {
   }
 
   Widget _buildStreakBadge(int streak, bool isDark) {
+    final hasStreak = streak > 0;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+          horizontal: 10, vertical: 6), // Reduced from 16, 8
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.orange.shade400, Colors.red.shade400],
+          colors: hasStreak
+              ? [Colors.orange.shade400, Colors.red.shade400]
+              : [Colors.grey.shade400, Colors.grey.shade600],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16), // Reduced from 20
         boxShadow: [
           BoxShadow(
-            color: Colors.orange.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: (hasStreak ? Colors.orange : Colors.grey).withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            '🔥',
-            style: TextStyle(fontSize: 18),
-          ),
-          const SizedBox(width: 8),
           Text(
-            '$streak Day Streak',
+            hasStreak ? '🔥' : '❄️',
+            style: const TextStyle(fontSize: 14), // Reduced from 18
+          ),
+          const SizedBox(width: 6),
+          Text(
+            hasStreak
+                ? '$streak'
+                : '0', // Just show number if it's too long, or "No"
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
-              fontSize: 14,
+              fontSize: 12, // Reduced from 14
             ),
           ),
+          if (hasStreak) ...[
+            const SizedBox(width: 2),
+            const Text(
+              'Days',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -460,7 +512,7 @@ class HomeDashboardPage extends StatelessWidget {
                 'DAILY AFFIRMATION',
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w600,
                   letterSpacing: 2,
                   color: Colors.cyan.withOpacity(0.8),
                 ),
@@ -475,8 +527,9 @@ class HomeDashboardPage extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 20,
-              fontWeight: FontWeight.w600,
-              height: 1.4,
+              fontWeight: FontWeight.w400,
+              fontStyle: FontStyle.italic,
+              height: 1.5,
               letterSpacing: -0.2,
             ),
           ),
@@ -635,7 +688,12 @@ class HomeDashboardPage extends StatelessWidget {
   Widget _buildMoodAnalytics(BuildContext context, bool isDark) {
     return BlocBuilder<DiaryBloc, DiaryState>(builder: (context, state) {
       if (state is! DiaryLoaded || state.entries.isEmpty) {
-        return const SizedBox.shrink();
+        return _buildEmptyStateCard(
+          isDark,
+          'Mood Analytics',
+          'No diary entries yet. Write your first entry to see your mood patterns!',
+          Icons.bar_chart,
+        );
       }
 
       // Get entries from the last 7 days
@@ -646,7 +704,12 @@ class HomeDashboardPage extends StatelessWidget {
           .toList();
 
       if (recentEntries.isEmpty) {
-        return const SizedBox.shrink();
+        return _buildEmptyStateCard(
+          isDark,
+          'Mood Analytics',
+          'No mood data for the last 7 days. Start writing to see your patterns!',
+          Icons.bar_chart,
+        );
       }
 
       // Count moods
@@ -658,7 +721,12 @@ class HomeDashboardPage extends StatelessWidget {
       }
 
       if (moodCounts.isEmpty) {
-        return const SizedBox.shrink();
+        return _buildEmptyStateCard(
+          isDark,
+          'Mood Analytics',
+          'Add mood tags to your entries to see your emotional trends!',
+          Icons.mood,
+        );
       }
 
       // Get mood colors
@@ -790,5 +858,52 @@ class HomeDashboardPage extends StatelessWidget {
         ],
       );
     });
+  }
+
+  Widget _buildEmptyStateCard(
+    bool isDark,
+    String title,
+    String message,
+    IconData icon,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.cyan,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isDark ? AppTheme.darkGrey : AppTheme.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.cyan.withOpacity(0.1),
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, size: 48, color: Colors.cyan.withOpacity(0.2)),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }

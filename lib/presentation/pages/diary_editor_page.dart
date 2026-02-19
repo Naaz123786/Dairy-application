@@ -365,66 +365,260 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
           ),
           const SizedBox(height: 8),
 
-          // Images vertical list
+          // Images Grid View
           if (_attachedImages.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
-              child: Column(
-                children: _attachedImages.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final path = entry.value;
-                  return Padding(
-                    padding: EdgeInsets.only(
-                      bottom: index < _attachedImages.length - 1 ? 10 : 0,
-                    ),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Container(
-                          width: double.infinity,
-                          height: 180,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            image: DecorationImage(
-                              image: kIsWeb
-                                  ? NetworkImage(path)
-                                  : FileImage(File(path)) as ImageProvider,
-                              fit: BoxFit.cover,
-                            ),
-                            border: Border.all(
-                              color: isDark
-                                  ? AppTheme.white.withOpacity(0.1)
-                                  : AppTheme.black.withOpacity(0.1),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: GestureDetector(
-                            onTap: () => _removeImage(index),
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                                border:
-                                    Border.all(color: Colors.white, width: 2),
-                              ),
-                              child: const Icon(Icons.close,
-                                  size: 14, color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildMediaGrid(context, isDark),
             )
           else
             const SizedBox(height: 12),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMediaGrid(BuildContext context, bool isDark) {
+    final count = _attachedImages.length;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final height = width * 0.6;
+
+          if (count == 1) {
+            return _buildImageItem(context, 0, width, height, isDark);
+          } else if (count == 2) {
+            return SizedBox(
+              height: height,
+              child: Row(
+                children: [
+                  Expanded(
+                      child: _buildImageItem(context, 0, null, height, isDark)),
+                  const SizedBox(width: 4),
+                  Expanded(
+                      child: _buildImageItem(context, 1, null, height, isDark)),
+                ],
+              ),
+            );
+          } else if (count == 3) {
+            return SizedBox(
+              height: height,
+              child: Row(
+                children: [
+                  Expanded(
+                      child: _buildImageItem(context, 0, null, height, isDark)),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Expanded(
+                            child: _buildImageItem(
+                                context, 1, null, null, isDark)),
+                        const SizedBox(height: 4),
+                        Expanded(
+                            child: _buildImageItem(
+                                context, 2, null, null, isDark)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            return SizedBox(
+              height: height,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Expanded(
+                            child: _buildImageItem(
+                                context, 0, null, null, isDark)),
+                        const SizedBox(height: 4),
+                        Expanded(
+                            child: _buildImageItem(
+                                context, 1, null, null, isDark)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Expanded(
+                            child: _buildImageItem(
+                                context, 2, null, null, isDark)),
+                        const SizedBox(height: 4),
+                        Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            _buildImageItem(context, 3, null, null, isDark),
+                            if (count > 4)
+                              Container(
+                                color: Colors.black54,
+                                child: Center(
+                                  child: Text(
+                                    '+${count - 4}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  ImageProvider _getImageProvider(String path) {
+    if (path.startsWith('data:image')) {
+      final base64String = path.split(',').last;
+      return MemoryImage(base64Decode(base64String));
+    } else if (path.startsWith('http')) {
+      return NetworkImage(path);
+    } else {
+      if (kIsWeb) {
+        return NetworkImage(path);
+      }
+      return FileImage(File(path));
+    }
+  }
+
+  Widget _buildImageItem(
+    BuildContext context,
+    int index,
+    double? width,
+    double? height,
+    bool isDark,
+  ) {
+    final path = _attachedImages[index];
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: () => _showFullScreenImage(context, index),
+            child: Image(
+              image: _getImageProvider(path),
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: Colors.grey[300],
+                child: const Icon(Icons.error_outline),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: GestureDetector(
+            onTap: () => _removeImage(index),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.close, size: 12, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showFullScreenImage(BuildContext context, int initialIndex) {
+    final PageController controller = PageController(initialPage: initialIndex);
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog.fullscreen(
+        backgroundColor: Colors.black,
+        child: Stack(
+          children: [
+            PageView.builder(
+              controller: controller,
+              itemCount: _attachedImages.length,
+              itemBuilder: (context, index) {
+                final path = _attachedImages[index];
+                return InteractiveViewer(
+                  child: Center(
+                    child: Image(
+                      image: _getImageProvider(path),
+                      errorBuilder: (context, error, stackTrace) => Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.broken_image,
+                              color: Colors.white, size: 64),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Image not found locally.\n(It might be on another device)',
+                            textAlign: TextAlign.center,
+                            style:
+                                TextStyle(color: Colors.white.withOpacity(0.7)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            Positioned(
+              top: 40,
+              right: 20,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+            Positioned(
+              bottom: 40,
+              left: 0,
+              right: 0,
+              child: Align(
+                alignment: Alignment.center,
+                child: AnimatedBuilder(
+                  animation: controller,
+                  builder: (context, child) {
+                    final currentPage = controller.hasClients
+                        ? controller.page?.round()
+                        : initialIndex;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${(currentPage ?? 0) + 1} / ${_attachedImages.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
