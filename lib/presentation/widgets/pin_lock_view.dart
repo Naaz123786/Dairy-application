@@ -227,7 +227,8 @@ class _PinLockViewState extends State<PinLockView> {
                 color: isDark ? Colors.grey[800] : Colors.grey[300],
                 letterSpacing: 8),
             enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.cyan.withOpacity(0.5))),
+                borderSide:
+                    BorderSide(color: Colors.cyan.withValues(alpha: 0.5))),
             focusedBorder: const UnderlineInputBorder(
                 borderSide: BorderSide(color: Colors.cyan, width: 2)),
           ),

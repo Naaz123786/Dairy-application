@@ -9,6 +9,7 @@ class DiaryEntry extends Equatable {
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<String> images;
+  final List<String> tags;
 
   const DiaryEntry({
     required this.id,
@@ -19,6 +20,7 @@ class DiaryEntry extends Equatable {
     required this.createdAt,
     required this.updatedAt,
     this.images = const [],
+    this.tags = const [],
   });
 
   @override
@@ -31,5 +33,6 @@ class DiaryEntry extends Equatable {
         createdAt,
         updatedAt,
         images,
+        tags,
       ];
 }

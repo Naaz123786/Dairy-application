@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive/hive.dart';
+import '../../domain/entities/diary_entry.dart';
 
 part 'diary_entry_model.g.dart';
 
@@ -29,6 +30,9 @@ class DiaryEntryModel extends HiveObject {
   @HiveField(7)
   final List<String> images;
 
+  @HiveField(8)
+  final List<String> tags;
+
   DiaryEntryModel({
     required this.id,
     required this.title,
@@ -38,6 +42,7 @@ class DiaryEntryModel extends HiveObject {
     required this.createdAt,
     required this.updatedAt,
     this.images = const [],
+    this.tags = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -50,6 +55,7 @@ class DiaryEntryModel extends HiveObject {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'images': images,
+      'tags': tags,
     };
   }
 
@@ -70,6 +76,35 @@ class DiaryEntryModel extends HiveObject {
       createdAt: getDate(map['createdAt']),
       updatedAt: getDate(map['updatedAt']),
       images: List<String>.from(map['images'] ?? []),
+      tags: List<String>.from(map['tags'] ?? []),
+    );
+  }
+
+  DiaryEntry toEntity() {
+    return DiaryEntry(
+      id: id,
+      title: title,
+      content: content,
+      date: date,
+      mood: mood,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      images: images,
+      tags: tags,
+    );
+  }
+
+  factory DiaryEntryModel.fromEntity(DiaryEntry entity) {
+    return DiaryEntryModel(
+      id: entity.id,
+      title: entity.title,
+      content: entity.content,
+      date: entity.date,
+      mood: entity.mood,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      images: entity.images,
+      tags: entity.tags,
     );
   }
 }

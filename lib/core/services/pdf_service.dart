@@ -1,7 +1,6 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -35,8 +34,31 @@ class PdfService {
           }
         }
       } catch (e) {
-        print('Error loading image for PDF: $e');
+        debugPrint('Error loading image for PDF: $e');
       }
+    }
+
+    // Content Rendering (Rich Text to Plain Text fallback)
+    String displayContent = entry.content;
+    try {
+      if (displayContent.trim().startsWith('[') ||
+          displayContent.trim().startsWith('{')) {
+        final dynamic decoded = jsonDecode(displayContent);
+        if (decoded is List) {
+          final StringBuffer buffer = StringBuffer();
+          for (final op in decoded) {
+            if (op is Map && op.containsKey('insert')) {
+              final insert = op['insert'];
+              if (insert is String) {
+                buffer.write(insert);
+              }
+            }
+          }
+          displayContent = buffer.toString();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error parsing rich text for PDF: $e');
     }
 
     pdf.addPage(
@@ -102,7 +124,7 @@ class PdfService {
 
               // Content
               pw.Text(
-                entry.content,
+                displayContent,
                 style: const pw.TextStyle(
                   fontSize: 14,
                   lineSpacing: 1.5,
@@ -204,15 +226,8 @@ class PdfService {
 
   /// Print PDF
   Future<void> printPdf(Uint8List pdfBytes) async {
-    if (kIsWeb) {
-      // On web, open print dialog
-      await Printing.layoutPdf(
-        onLayout: (PdfPageFormat format) async => pdfBytes,
-      );
-    } else {
-      await Printing.layoutPdf(
-        onLayout: (PdfPageFormat format) async => pdfBytes,
-      );
-    }
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdfBytes,
+    );
   }
 }

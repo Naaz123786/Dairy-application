@@ -287,7 +287,7 @@ class ExamsTab extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: boxColor.withOpacity(0.1),
+                            color: boxColor.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(Icons.school, color: boxColor, size: 20),
@@ -299,7 +299,7 @@ class ExamsTab extends StatelessWidget {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: boxColor.withOpacity(0.1),
+                            color: boxColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(
@@ -317,7 +317,7 @@ class ExamsTab extends StatelessWidget {
                                 'Days',
                                 style: TextStyle(
                                   fontSize: 8,
-                                  color: leadingColor.withOpacity(0.7),
+                                  color: leadingColor.withValues(alpha: 0.7),
                                 ),
                               ),
                             ],
@@ -485,8 +485,8 @@ Widget _buildGradientCard(
       borderRadius: BorderRadius.circular(20),
       border: Border.all(
         color: isDark
-            ? Colors.cyan.withOpacity(0.3)
-            : Colors.cyan.withOpacity(0.5),
+            ? Colors.cyan.withValues(alpha: 0.3)
+            : Colors.cyan.withValues(alpha: 0.5),
         width: 1,
       ),
     ),

@@ -77,10 +77,12 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
             onPressed: () async {
               if (controller.text.length >= 4) {
                 await _localDb.setDiaryPin(controller.text);
-                if (mounted) Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('PIN updated successfully')),
-                );
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('PIN updated successfully')),
+                  );
+                }
               }
             },
             style: FilledButton.styleFrom(
@@ -169,7 +171,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
             leading: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.cyan.withOpacity(0.1),
+                color: Colors.cyan.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(Icons.password, color: Colors.cyan),
@@ -211,7 +213,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
                     _appLockEnabled = false;
                     _diaryLockEnabled = false;
                   });
-                  if (mounted) {
+                  if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                           content: Text('All security locks disabled')),
@@ -231,9 +233,9 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.cyan.withOpacity(0.05),
+              color: Colors.cyan.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.cyan.withOpacity(0.1)),
+              border: Border.all(color: Colors.cyan.withValues(alpha: 0.1)),
             ),
             child: Row(
               children: [
@@ -292,7 +294,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
           secondary: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.cyan.withOpacity(0.1),
+              color: Colors.cyan.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: Colors.cyan),

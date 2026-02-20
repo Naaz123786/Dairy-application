@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import '../../domain/entities/diary_entry.dart';
 import '../bloc/diary_bloc.dart';
 import '../../core/theme/app_theme.dart';
@@ -21,10 +22,14 @@ class DiaryEditorPage extends StatefulWidget {
 
 class _DiaryEditorPageState extends State<DiaryEditorPage> {
   final _titleController = TextEditingController();
-  final _contentController = TextEditingController();
+  late final QuillController _quillController;
+  final _focusNode = FocusNode();
+  final _scrollController = ScrollController();
   DateTime _selectedDate = DateTime.now();
   String? _selectedMood;
   List<String> _attachedImages = [];
+  final List<String> _tags = [];
+  final _tagController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
   final List<String> _moods = [
@@ -39,13 +44,55 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
   @override
   void initState() {
     super.initState();
+    _initQuillController();
     if (widget.entry != null) {
       _titleController.text = widget.entry!.title;
-      _contentController.text = widget.entry!.content;
       _selectedMood = widget.entry!.mood;
       _selectedDate = widget.entry!.date;
       _attachedImages = List.from(widget.entry!.images);
+      _tags.addAll(widget.entry!.tags);
     }
+  }
+
+  void _initQuillController() {
+    if (widget.entry != null && widget.entry!.content.isNotEmpty) {
+      try {
+        final content = widget.entry!.content;
+        if (content.trim().startsWith('[') || content.trim().startsWith('{')) {
+          final doc = Document.fromJson(jsonDecode(content));
+          _quillController = QuillController(
+            document: doc,
+            selection: const TextSelection.collapsed(offset: 0),
+          );
+        } else {
+          // Plain text fallback
+          final doc = Document()..insert(0, content);
+          _quillController = QuillController(
+            document: doc,
+            selection: const TextSelection.collapsed(offset: 0),
+          );
+        }
+      } catch (e) {
+        debugPrint('Error parsing quill content: $e');
+        final doc = Document()..insert(0, widget.entry!.content);
+        _quillController = QuillController(
+          document: doc,
+          selection: const TextSelection.collapsed(offset: 0),
+        );
+      }
+    } else {
+      _quillController = QuillController.basic();
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _quillController.dispose();
+    _tagController.dispose();
+    _focusNode.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _pickImage() async {
@@ -67,6 +114,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
       }
     } catch (e) {
       debugPrint('Error picking image: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to pick image: $e')),
       );
@@ -114,6 +162,17 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
             const SizedBox(height: 24),
             _buildTitleField(isDark),
             const SizedBox(height: 24),
+            Text(
+              'Tags (Optional)',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: isDark ? AppTheme.white : AppTheme.black,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildTagInput(isDark),
+            const SizedBox(height: 24),
             const Text(
               'How are you feeling?',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -136,6 +195,78 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
 
   // ... (Other build methods stay same)
 
+  Widget _buildTagInput(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _tagController,
+          decoration: InputDecoration(
+            hintText: 'Add a tag (e.g. travel, food)...',
+            prefixIcon: const Icon(Icons.label_outline),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.add_circle),
+              onPressed: _addTag,
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+            filled: true,
+            fillColor: isDark
+                ? AppTheme.darkGrey
+                : AppTheme.black.withValues(alpha: 0.05),
+          ),
+          onSubmitted: (_) => _addTag(),
+        ),
+        if (_tags.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: _tags.map((tag) {
+              return Chip(
+                label: Text(tag),
+                onDeleted: () {
+                  setState(() {
+                    _tags.remove(tag);
+                  });
+                },
+                deleteIcon: const Icon(Icons.close, size: 14),
+                backgroundColor: isDark
+                    ? AppTheme.white.withValues(alpha: 0.1)
+                    : AppTheme.black.withValues(alpha: 0.05),
+                labelStyle: TextStyle(
+                  color: isDark ? AppTheme.white : AppTheme.black,
+                  fontSize: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: isDark
+                        ? AppTheme.white.withValues(alpha: 0.2)
+                        : AppTheme.black.withValues(alpha: 0.1),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _addTag() {
+    final text = _tagController.text.trim().toLowerCase();
+    if (text.isNotEmpty) {
+      if (!_tags.contains(text)) {
+        setState(() {
+          _tags.add(text);
+          _tagController.clear();
+        });
+      } else {
+        _tagController.clear();
+      }
+    }
+  }
+
   Widget _buildDatePicker(bool isDark) {
     return InkWell(
       onTap: _pickDate,
@@ -147,8 +278,8 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isDark
-                ? AppTheme.white.withOpacity(0.5)
-                : AppTheme.black.withOpacity(0.5),
+                ? AppTheme.white.withValues(alpha: 0.5)
+                : AppTheme.black.withValues(alpha: 0.5),
             width: 2,
           ),
         ),
@@ -175,8 +306,8 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
                     'Date',
                     style: TextStyle(
                       color: isDark
-                          ? AppTheme.white.withOpacity(0.5)
-                          : AppTheme.black.withOpacity(0.5),
+                          ? AppTheme.white.withValues(alpha: 0.5)
+                          : AppTheme.black.withValues(alpha: 0.5),
                       fontSize: 12,
                     ),
                   ),
@@ -209,7 +340,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
         filled: true,
         fillColor:
-            isDark ? AppTheme.darkGrey : AppTheme.black.withOpacity(0.05),
+            isDark ? AppTheme.darkGrey : AppTheme.black.withValues(alpha: 0.05),
       ),
     );
   }
@@ -239,14 +370,14 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
                   ? (isDark ? AppTheme.white : AppTheme.black)
                   : (isDark
                       ? AppTheme.darkGrey
-                      : AppTheme.black.withOpacity(0.05)),
+                      : AppTheme.black.withValues(alpha: 0.05)),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: isSelected
                     ? (isDark ? AppTheme.white : AppTheme.black)
                     : (isDark
-                        ? AppTheme.white.withOpacity(0.1)
-                        : AppTheme.black.withOpacity(0.1)),
+                        ? AppTheme.white.withValues(alpha: 0.1)
+                        : AppTheme.black.withValues(alpha: 0.1)),
                 width: 2,
               ),
             ),
@@ -267,114 +398,160 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
   }
 
   Widget _buildContentField(bool isDark) {
-    return Container(
-      constraints: const BoxConstraints(
-        minHeight: 100,
-      ),
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkGrey : AppTheme.black.withOpacity(0.02),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark
-              ? AppTheme.white.withOpacity(0.1)
-              : AppTheme.black.withOpacity(0.1),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Thoughts Field
-          TextField(
-            controller: _contentController,
-            maxLines: null,
-            minLines: 2,
-            textAlignVertical: TextAlignVertical.top,
-            style: const TextStyle(fontSize: 16, height: 1.5),
-            decoration: InputDecoration(
-              hintText: 'Dear Diary,\n\nToday was...',
-              hintStyle: TextStyle(
-                color: isDark
-                    ? AppTheme.white.withOpacity(0.3)
-                    : AppTheme.black.withOpacity(0.3),
-              ),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.all(16),
-            ),
-          ),
-
-          // Divider
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Divider(
-              height: 1,
+    return Column(
+      children: [
+        // Quill Toolbar
+        Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: isDark ? AppTheme.darkGrey : AppTheme.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
               color: isDark
-                  ? AppTheme.white.withOpacity(0.05)
-                  : AppTheme.black.withOpacity(0.05),
+                  ? AppTheme.white.withOpacity(0.1)
+                  : AppTheme.black.withOpacity(0.1),
             ),
           ),
-
-          // Media Section Header within the box
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Media',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? AppTheme.white.withOpacity(0.5)
-                        : AppTheme.black.withOpacity(0.5),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: _pickImage,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppTheme.white : AppTheme.black,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.add_photo_alternate_rounded,
-                          size: 14,
-                          color: isDark ? AppTheme.black : AppTheme.white,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Add',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? AppTheme.black : AppTheme.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+          child: QuillSimpleToolbar(
+            controller: _quillController,
+            config: QuillSimpleToolbarConfig(
+              showFontFamily: false,
+              showFontSize: false,
+              showBoldButton: true,
+              showItalicButton: true,
+              showUnderLineButton: true,
+              showStrikeThrough: false,
+              showColorButton: true,
+              showBackgroundColorButton: false,
+              showListNumbers: true,
+              showListBullets: true,
+              showListCheck: true,
+              showCodeBlock: false,
+              showQuote: true,
+              showIndent: false,
+              showLink: true,
+              showUndo: true,
+              showRedo: true,
+              showAlignmentButtons: false,
+              showSearchButton: false,
+              showSubscript: false,
+              showSuperscript: false,
             ),
           ),
-          const SizedBox(height: 8),
+        ),
+        Container(
+          constraints: const BoxConstraints(
+            minHeight: 200,
+            maxHeight: 400,
+          ),
+          decoration: BoxDecoration(
+            color: isDark
+                ? AppTheme.darkGrey
+                : AppTheme.black.withValues(alpha: 0.02),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isDark
+                  ? AppTheme.white.withValues(alpha: 0.1)
+                  : AppTheme.black.withValues(alpha: 0.1),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Rich Editor
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: QuillEditor.basic(
+                    controller: _quillController,
+                    focusNode: _focusNode,
+                    scrollController: _scrollController,
+                    config: QuillEditorConfig(
+                      placeholder: 'Dear Diary,\n\nToday was...',
+                      expands: false,
+                      padding: EdgeInsets.zero,
+                      autoFocus: false,
+                      scrollable: true,
+                    ),
+                  ),
+                ),
+              ),
 
-          // Images Grid View
-          if (_attachedImages.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildMediaGrid(context, isDark),
-            )
-          else
-            const SizedBox(height: 12),
-        ],
-      ),
+              // Divider
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Divider(
+                  height: 1,
+                  color: isDark
+                      ? AppTheme.white.withValues(alpha: 0.05)
+                      : AppTheme.black.withValues(alpha: 0.05),
+                ),
+              ),
+
+              // Media Section Header within the box
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Media',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isDark
+                            ? AppTheme.white.withValues(alpha: 0.5)
+                            : AppTheme.black.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppTheme.white : AppTheme.black,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.add_photo_alternate_rounded,
+                              size: 14,
+                              color: isDark ? AppTheme.black : AppTheme.white,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Add',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppTheme.black : AppTheme.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Images Grid View
+              if (_attachedImages.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildMediaGrid(context, isDark),
+                )
+              else
+                const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -568,8 +745,8 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
                           Text(
                             'Image not found locally.\n(It might be on another device)',
                             textAlign: TextAlign.center,
-                            style:
-                                TextStyle(color: Colors.white.withOpacity(0.7)),
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.7)),
                           ),
                         ],
                       ),
@@ -623,36 +800,34 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
     );
   }
 
-  void _saveEntry() {
-    if (_titleController.text.isEmpty || _contentController.text.isEmpty) {
+  Future<void> _saveEntry() async {
+    if (_titleController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please fill in both title and content'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+        const SnackBar(content: Text('Please enter a title')),
       );
       return;
     }
 
+    // Convert Quill document to JSON string
+    final contentJson =
+        jsonEncode(_quillController.document.toDelta().toJson());
+
     final entry = DiaryEntry(
       id: widget.entry?.id ?? const Uuid().v4(),
       title: _titleController.text,
-      content: _contentController.text,
+      content: contentJson,
       date: _selectedDate,
       mood: _selectedMood ?? '',
       createdAt: widget.entry?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
-      images: _attachedImages,
+      images:
+          _attachedImages, // Assuming _images should be _attachedImages based on context
+      tags: _tags,
     );
 
-    if (widget.entry != null) {
-      context.read<DiaryBloc>().add(UpdateDiaryEntry(entry));
-    } else {
-      context.read<DiaryBloc>().add(AddDiaryEntry(entry));
-    }
+    context.read<DiaryBloc>().add(
+          widget.entry == null ? AddDiaryEntry(entry) : UpdateDiaryEntry(entry),
+        );
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

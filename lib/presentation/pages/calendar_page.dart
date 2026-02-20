@@ -104,8 +104,8 @@ class _CalendarViewState extends State<CalendarView> {
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
                     color: isDark
-                        ? Colors.cyan.withOpacity(0.3)
-                        : Colors.cyan.withOpacity(0.5),
+                        ? Colors.cyan.withValues(alpha: 0.3)
+                        : Colors.cyan.withValues(alpha: 0.5),
                     width: 1,
                   ),
                 ),
@@ -250,8 +250,8 @@ class _CalendarViewState extends State<CalendarView> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDark
-              ? Colors.cyan.withOpacity(0.3)
-              : Colors.cyan.withOpacity(0.5),
+              ? Colors.cyan.withValues(alpha: 0.3)
+              : Colors.cyan.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -400,7 +400,7 @@ class _CalendarViewState extends State<CalendarView> {
                           selected: isBirthday,
                           onSelected: (val) =>
                               setState(() => isBirthday = true),
-                          selectedColor: Colors.cyan.withOpacity(0.2),
+                          selectedColor: Colors.cyan.withValues(alpha: 0.2),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -410,7 +410,7 @@ class _CalendarViewState extends State<CalendarView> {
                           selected: !isBirthday,
                           onSelected: (val) =>
                               setState(() => isBirthday = false),
-                          selectedColor: Colors.cyan.withOpacity(0.2),
+                          selectedColor: Colors.cyan.withValues(alpha: 0.2),
                         ),
                       ),
                     ],

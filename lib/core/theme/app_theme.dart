@@ -669,14 +669,14 @@ class AppTheme {
       id: id,
       name: name,
       particleType: particles,
-      particleColor: primary.withOpacity(0.6),
+      particleColor: primary.withValues(alpha: 0.6),
       borderRadius: radius,
       borderWidth: width,
       borderAlpha: alpha,
       themeData: _buildTheme(
         brightness: brightness,
         primary: primary,
-        secondary: primary.withOpacity(0.8),
+        secondary: primary.withValues(alpha: 0.8),
         background: background,
         accent: accent,
         borderRadius: radius,
@@ -718,10 +718,8 @@ class AppTheme {
         onPrimary: isDark ? black : white,
         secondary: secondary,
         onSecondary: isDark ? black : white,
-        surface: isDark ? darkGrey : white,
+        surface: background,
         onSurface: textColor,
-        background: background,
-        onBackground: textColor,
         error: Colors.redAccent,
         onError: white,
       ),
@@ -749,7 +747,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(borderRadius),
           side: borderWidth > 0
               ? BorderSide(
-                  color: accent.withOpacity(borderAlpha),
+                  color: accent.withValues(alpha: borderAlpha),
                   width: borderWidth,
                 )
               : BorderSide.none,
@@ -768,18 +766,20 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? white.withOpacity(0.05) : black.withOpacity(0.05),
+        fillColor: isDark
+            ? white.withValues(alpha: 0.05)
+            : black.withValues(alpha: 0.05),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(borderRadius),
           borderSide: BorderSide(
-            color: accent.withOpacity(borderAlpha),
+            color: accent.withValues(alpha: borderAlpha),
             width: borderWidth,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(borderRadius),
           borderSide: BorderSide(
-            color: accent.withOpacity(borderAlpha),
+            color: accent.withValues(alpha: borderAlpha),
             width: borderWidth,
           ),
         ),
@@ -796,7 +796,7 @@ class AppTheme {
       ),
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: accent,
-        selectionColor: accent.withOpacity(0.2),
+        selectionColor: accent.withValues(alpha: 0.2),
         selectionHandleColor: accent,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(

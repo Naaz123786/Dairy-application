@@ -24,7 +24,7 @@ class ThemePreviewScreen extends StatelessWidget {
                 child: Icon(
                   category.icon,
                   size: 100,
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                 ),
               );
             },
@@ -37,9 +37,9 @@ class ThemePreviewScreen extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.3),
+                  Colors.black.withValues(alpha: 0.3),
                   Colors.transparent,
-                  Colors.black.withOpacity(0.8),
+                  Colors.black.withValues(alpha: 0.8),
                 ],
               ),
             ),
@@ -66,7 +66,7 @@ class ThemePreviewScreen extends StatelessWidget {
                 Text(
                   '${category.variants.length} premium styles',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 16,
                   ),
                 ),

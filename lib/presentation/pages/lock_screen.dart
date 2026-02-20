@@ -120,7 +120,7 @@ class _LockScreenState extends State<LockScreen> {
             shape: BoxShape.circle,
             color: _isError
                 ? Colors.red
-                : (isFilled ? Colors.cyan : Colors.grey.withOpacity(0.3)),
+                : (isFilled ? Colors.cyan : Colors.grey.withValues(alpha: 0.3)),
           ),
         );
       }),

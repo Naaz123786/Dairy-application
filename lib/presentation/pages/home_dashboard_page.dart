@@ -38,86 +38,69 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
             color: Colors.cyan,
           ),
         ),
-        actions: [
-          IconButton(
-            onPressed: () {
-              context.read<DiaryBloc>().add(LoadDiaryEntries());
-              context.read<ReminderBloc>().add(LoadReminders());
-            },
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
-          ),
-        ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          context.read<DiaryBloc>().add(LoadDiaryEntries());
-          context.read<ReminderBloc>().add(LoadReminders());
-        },
-        color: Colors.cyan,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildGreeting(isDark),
-              const SizedBox(height: 24),
-              _buildAffirmationCard(isDark),
-              const SizedBox(height: 32),
-              const Text(
-                'Quick Stats',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.cyan,
-                ),
+      body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildGreeting(isDark),
+            const SizedBox(height: 24),
+            _buildAffirmationCard(isDark),
+            const SizedBox(height: 32),
+            const Text(
+              'Quick Stats',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.cyan,
               ),
-              const SizedBox(height: 16),
-              _buildStatsRow(isDark),
-              const SizedBox(height: 32),
-              _buildMoodAnalytics(context, isDark),
-              const SizedBox(height: 32),
-              _buildBirthdaySection(isDark),
-              const SizedBox(height: 32),
-              const Text(
-                'Quick Actions',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.cyan,
-                ),
+            ),
+            const SizedBox(height: 16),
+            _buildStatsRow(isDark),
+            const SizedBox(height: 32),
+            _buildMoodAnalytics(context, isDark),
+            const SizedBox(height: 32),
+            _buildBirthdaySection(isDark),
+            const SizedBox(height: 32),
+            const Text(
+              'Quick Actions',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.cyan,
               ),
-              const SizedBox(height: 16),
-              _buildQuickActionCard(
-                context,
-                isDark,
-                'Write a Diary Entry',
-                'Capture your thoughts',
-                Icons.edit_note,
-                AppRoutes.diaryEdit,
-              ),
-              const SizedBox(height: 12),
-              _buildQuickActionCard(
-                context,
-                isDark,
-                'Add a Routine',
-                'Build better habits',
-                Icons.schedule,
-                AppRoutes.planner,
-              ),
-              const SizedBox(height: 12),
-              _buildQuickActionCard(
-                context,
-                isDark,
-                'Add Birthday',
-                'Never forget special days',
-                Icons.cake,
-                AppRoutes.calendar,
-              ),
-              const SizedBox(height: 80),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+            _buildQuickActionCard(
+              context,
+              isDark,
+              'Write a Diary Entry',
+              'Capture your thoughts',
+              Icons.edit_note,
+              AppRoutes.diaryEdit,
+            ),
+            const SizedBox(height: 12),
+            _buildQuickActionCard(
+              context,
+              isDark,
+              'Add a Routine',
+              'Build better habits',
+              Icons.schedule,
+              AppRoutes.planner,
+            ),
+            const SizedBox(height: 12),
+            _buildQuickActionCard(
+              context,
+              isDark,
+              'Add Birthday',
+              'Never forget special days',
+              Icons.cake,
+              AppRoutes.calendar,
+            ),
+            const SizedBox(height: 80),
+          ],
         ),
       ),
     );
@@ -829,7 +812,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                       ],
                     ),
                   );
-                }).toList(),
+                }),
                 const SizedBox(height: 8),
                 Divider(color: Colors.cyan.withOpacity(0.2)),
                 const SizedBox(height: 8),

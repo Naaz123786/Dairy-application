@@ -52,8 +52,7 @@ class ParticleModel {
   late double vx;
   late double vy;
 
-  ParticleModel(Size canvasSize, ParticleType type, Color baseColor) {
-    this.type = type;
+  ParticleModel(Size canvasSize, this.type, Color baseColor) {
     reset(canvasSize, baseColor, isInitial: true);
   }
 

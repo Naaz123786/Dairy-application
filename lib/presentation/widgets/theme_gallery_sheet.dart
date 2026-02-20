@@ -39,7 +39,7 @@ class _ThemeGallerySheetState extends State<ThemeGallerySheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -105,7 +105,7 @@ class _ThemeGallerySheetState extends State<ThemeGallerySheet> {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: pack.backgroundColor.withOpacity(0.4),
+                        color: pack.backgroundColor.withValues(alpha: 0.4),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -130,7 +130,7 @@ class _ThemeGallerySheetState extends State<ThemeGallerySheet> {
                       // Overlay
                       Positioned.fill(
                         child: Container(
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                         ),
                       ),
                       // Content
@@ -151,7 +151,7 @@ class _ThemeGallerySheetState extends State<ThemeGallerySheet> {
                             Text(
                               '${pack.variants.length} Styles',
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.8),
+                                color: Colors.white.withValues(alpha: 0.8),
                                 fontSize: 12,
                               ),
                             ),
@@ -229,14 +229,16 @@ class _ThemeGallerySheetState extends State<ThemeGallerySheet> {
                   decoration: BoxDecoration(
                     color: isSelected
                         ? primaryColor
-                        : primaryColor.withOpacity(0.1),
+                        : primaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(variant.borderRadius),
                     border: Border.all(
                       color: isSelected
                           ? primaryColor
                           : (isDark
-                              ? Colors.white.withOpacity(variant.borderAlpha)
-                              : Colors.black.withOpacity(variant.borderAlpha)),
+                              ? Colors.white
+                                  .withValues(alpha: variant.borderAlpha)
+                              : Colors.black
+                                  .withValues(alpha: variant.borderAlpha)),
                       width: variant.borderWidth > 0 ? variant.borderWidth : 1,
                     ),
                   ),

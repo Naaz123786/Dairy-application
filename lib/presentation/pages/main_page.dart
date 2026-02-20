@@ -142,8 +142,8 @@ class _MainPageState extends State<MainPage>
           boxShadow: [
             BoxShadow(
               color: isDark
-                  ? Colors.white.withOpacity(0.05)
-                  : Colors.black.withOpacity(0.05),
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.black.withValues(alpha: 0.05),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -226,7 +226,9 @@ class _MainPageState extends State<MainPage>
         curve: Curves.easeInOut,
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: isSelected ? activeColor.withOpacity(0.1) : Colors.transparent,
+          color: isSelected
+              ? activeColor.withValues(alpha: 0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(

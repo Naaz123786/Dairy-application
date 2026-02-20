@@ -36,11 +36,13 @@ class _LoginPageState extends State<LoginPage> {
       if (userCred.user != null) {
         // Reload user to get latest profile data including displayName
         await userCred.user!.reload();
-        if (mounted) {
+        if (context.mounted) {
           context.read<DiaryBloc>().add(LoadDiaryEntries());
 
           // Wait a bit for auth state to update
           await Future.delayed(const Duration(milliseconds: 100));
+
+          if (!context.mounted) return;
 
           // Only pop if we can, otherwise let AuthWrapper handle navigation
           if (Navigator.canPop(context)) {
@@ -208,7 +210,7 @@ class _LoginPageState extends State<LoginPage> {
         debugPrint('   Final Photo URL: ${currentUser.photoURL}');
 
         // Success - load data
-        if (mounted) {
+        if (context.mounted) {
           debugPrint('📊 Loading diary entries...');
           context.read<DiaryBloc>().add(LoadDiaryEntries());
 
@@ -223,7 +225,7 @@ class _LoginPageState extends State<LoginPage> {
               '   Verified User: ${verifiedUser != null ? "Present" : "NULL"}');
           debugPrint('   Verified Email: ${verifiedUser?.email}');
 
-          if (verifiedUser != null && mounted) {
+          if (verifiedUser != null && context.mounted) {
             debugPrint('✅ User verified, starting navigation...');
 
             // Only pop if we can, otherwise navigate to home
@@ -241,7 +243,7 @@ class _LoginPageState extends State<LoginPage> {
             debugPrint('✅ Navigation complete!');
           } else {
             debugPrint('❌ Navigation failed: User not verified after delay');
-            if (mounted) {
+            if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text(
@@ -321,13 +323,15 @@ class _LoginPageState extends State<LoginPage> {
           password: _passwordController.text.trim(),
         );
       }
-      if (mounted) {
+      if (context.mounted) {
         // Trigger data load immediately
         context.read<DiaryBloc>().add(LoadDiaryEntries());
         context.read<ReminderBloc>().add(LoadReminders());
 
         // Wait a bit for auth state to update
         await Future.delayed(const Duration(milliseconds: 100));
+
+        if (!context.mounted) return;
 
         // Only pop if we can, otherwise navigate to home
         if (Navigator.canPop(context)) {
@@ -414,7 +418,7 @@ class _LoginPageState extends State<LoginPage> {
                       _obscurePassword
                           ? Icons.visibility_off
                           : Icons.visibility,
-                      color: primaryColor.withOpacity(0.6),
+                      color: primaryColor.withValues(alpha: 0.6),
                     ),
                     onPressed: () {
                       setState(() {

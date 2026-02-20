@@ -175,7 +175,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         decoration: BoxDecoration(
                           color: _currentPage == index
                               ? primaryColor
-                              : primaryColor.withOpacity(0.15),
+                              : primaryColor.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(3),
                         ),
                       ),
@@ -222,7 +222,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         child: Text(
                           'SKIP',
                           style: TextStyle(
-                            color: primaryColor.withOpacity(0.4),
+                            color: primaryColor.withValues(alpha: 0.4),
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.5,
@@ -238,7 +238,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     child: Text(
                       'Privacy Policy',
                       style: TextStyle(
-                        color: primaryColor.withOpacity(0.3),
+                        color: primaryColor.withValues(alpha: 0.3),
                         fontSize: 11,
                         decoration: TextDecoration.underline,
                       ),

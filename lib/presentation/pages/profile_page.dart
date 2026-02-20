@@ -279,7 +279,7 @@ class ProfilePage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.cyan.withOpacity(0.1),
+                    color: Colors.cyan.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(icon, size: 24, color: Colors.cyan),
@@ -328,7 +328,7 @@ class ProfilePage extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.cyan.withOpacity(0.1),
+            color: Colors.cyan.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: Colors.cyan),
@@ -401,7 +401,7 @@ class ProfilePage extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.cyan.withOpacity(0.1),
+                    color: Colors.cyan.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(

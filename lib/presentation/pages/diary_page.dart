@@ -23,6 +23,7 @@ class _DiaryPageState extends State<DiaryPage> {
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  final Set<String> _selectedTags = {};
 
   @override
   void initState() {
@@ -186,7 +187,7 @@ class _DiaryPageState extends State<DiaryPage> {
                     pdfBytes,
                     entry.title,
                   );
-                  if (mounted) {
+                  if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Saved to: $path')),
                     );
@@ -209,13 +210,65 @@ class _DiaryPageState extends State<DiaryPage> {
     }
   }
 
+  Widget _buildTagFilterBar(List<String> tags, bool isDark) {
+    return Container(
+      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: tags.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final tag = tags[index];
+          final isSelected = _selectedTags.contains(tag);
+
+          return FilterChip(
+            label: Text('#$tag'),
+            selected: isSelected,
+            onSelected: (selected) {
+              setState(() {
+                if (selected) {
+                  _selectedTags.add(tag);
+                } else {
+                  _selectedTags.remove(tag);
+                }
+              });
+            },
+            backgroundColor:
+                isDark ? AppTheme.darkGrey : AppTheme.black.withOpacity(0.05),
+            selectedColor: Colors.cyan.withOpacity(0.2),
+            checkmarkColor: Colors.cyan,
+            labelStyle: TextStyle(
+              color: isSelected
+                  ? Colors.cyan
+                  : (isDark ? AppTheme.white : AppTheme.black),
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(
+                color: isSelected
+                    ? Colors.cyan
+                    : (isDark
+                        ? AppTheme.white.withOpacity(0.1)
+                        : AppTheme.black.withOpacity(0.1)),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildBody(bool isDark) {
     return BlocBuilder<DiaryBloc, DiaryState>(
       builder: (context, state) {
         if (state is DiaryLoading) {
           return const Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation(Colors.grey),
+              valueColor: AlwaysStoppedAnimation(Colors.cyan),
             ),
           );
         }
@@ -225,7 +278,7 @@ class _DiaryPageState extends State<DiaryPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 64),
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
                 const SizedBox(height: 16),
                 Text(state.message),
               ],
@@ -234,6 +287,23 @@ class _DiaryPageState extends State<DiaryPage> {
         }
 
         if (state is DiaryLoaded) {
+          // Extract all unique tags
+          final allTags = state.entries.expand((e) => e.tags).toSet().toList()
+            ..sort();
+
+          final filteredEntries = state.entries.where((entry) {
+            final matchesSearch = entry.title
+                    .toLowerCase()
+                    .contains(_searchQuery) ||
+                entry.content.toLowerCase().contains(_searchQuery) ||
+                entry.tags.any((t) => t.toLowerCase().contains(_searchQuery));
+
+            final matchesTags = _selectedTags.isEmpty ||
+                _selectedTags.every((tag) => entry.tags.contains(tag));
+
+            return matchesSearch && matchesTags;
+          }).toList();
+
           if (state.entries.isEmpty) {
             return Center(
               child: Column(
@@ -250,17 +320,10 @@ class _DiaryPageState extends State<DiaryPage> {
                   Text(
                     'No diary entries yet',
                     style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.cyan,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tap the Write button to create your first entry',
-                    style: TextStyle(
                       color: isDark
                           ? AppTheme.white.withOpacity(0.5)
                           : AppTheme.black.withOpacity(0.5),
+                      fontSize: 18,
                     ),
                   ),
                 ],
@@ -268,56 +331,56 @@ class _DiaryPageState extends State<DiaryPage> {
             );
           }
 
-          // Filter entries based on search query
-          final filteredEntries = _searchQuery.isEmpty
-              ? state.entries
-              : state.entries.where((entry) {
-                  return entry.title.toLowerCase().contains(_searchQuery) ||
-                      entry.content.toLowerCase().contains(_searchQuery) ||
-                      entry.mood.toLowerCase().contains(_searchQuery);
-                }).toList();
-
-          if (filteredEntries.isEmpty && _searchQuery.isNotEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.search_off,
-                    size: 80,
-                    color: isDark
-                        ? AppTheme.white.withOpacity(0.2)
-                        : AppTheme.black.withOpacity(0.2),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'No entries found',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.cyan,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Try a different search term',
-                    style: TextStyle(
-                      color: isDark
-                          ? AppTheme.white.withOpacity(0.5)
-                          : AppTheme.black.withOpacity(0.5),
-                    ),
-                  ),
-                ],
+          return Column(
+            children: [
+              if (allTags.isNotEmpty) _buildTagFilterBar(allTags, isDark),
+              Expanded(
+                child: filteredEntries.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.search_off,
+                              size: 64,
+                              color:
+                                  isDark ? Colors.grey[700] : Colors.grey[300],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No entries match your search/filters',
+                              style: TextStyle(
+                                color: isDark
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                              ),
+                            ),
+                            if (_selectedTags.isNotEmpty ||
+                                _searchQuery.isNotEmpty)
+                              TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _selectedTags.clear();
+                                    _searchQuery = '';
+                                    _searchController.clear();
+                                  });
+                                },
+                                child: const Text('Clear Filters',
+                                    style: TextStyle(color: Colors.cyan)),
+                              ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filteredEntries.length,
+                        itemBuilder: (context, index) {
+                          final entry = filteredEntries[index];
+                          return _buildDiaryCard(context, entry, isDark);
+                        },
+                      ),
               ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: filteredEntries.length,
-            itemBuilder: (context, index) {
-              final entry = filteredEntries[index];
-              return _buildDiaryCard(context, entry, isDark);
-            },
+            ],
           );
         }
 
@@ -351,7 +414,7 @@ class _DiaryPageState extends State<DiaryPage> {
           },
           borderRadius: BorderRadius.circular(20),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -406,7 +469,33 @@ class _DiaryPageState extends State<DiaryPage> {
                     fontSize: 12,
                   ),
                 ),
-                const SizedBox(height: 8),
+                if (entry.tags.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: entry.tags.map((tag) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.cyan.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border:
+                              Border.all(color: Colors.cyan.withOpacity(0.2)),
+                        ),
+                        child: Text(
+                          '#$tag',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.cyan,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,

@@ -1,5 +1,6 @@
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 
 class SecurityService {
   final LocalAuthentication _auth = LocalAuthentication();
@@ -26,7 +27,7 @@ class SecurityService {
       );
       return didAuthenticate;
     } on PlatformException catch (e) {
-      print('SecurityService Error: $e');
+      debugPrint('SecurityService Error: $e');
       return false;
     } catch (e) {
       return false;
