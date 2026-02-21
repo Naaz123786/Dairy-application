@@ -408,8 +408,8 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isDark
-                  ? AppTheme.white.withOpacity(0.1)
-                  : AppTheme.black.withOpacity(0.1),
+                  ? AppTheme.white.withValues(alpha: 0.1)
+                  : AppTheme.black.withValues(alpha: 0.1),
             ),
           ),
           child: QuillSimpleToolbar(

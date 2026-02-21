@@ -36,24 +36,24 @@ class _LoginPageState extends State<LoginPage> {
       if (userCred.user != null) {
         // Reload user to get latest profile data including displayName
         await userCred.user!.reload();
-        if (context.mounted) {
-          context.read<DiaryBloc>().add(LoadDiaryEntries());
+        if (!mounted) return;
 
-          // Wait a bit for auth state to update
-          await Future.delayed(const Duration(milliseconds: 100));
+        context.read<DiaryBloc>().add(LoadDiaryEntries());
 
-          if (!context.mounted) return;
+        // Wait a bit for auth state to update
+        await Future.delayed(const Duration(milliseconds: 100));
 
-          // Only pop if we can, otherwise let AuthWrapper handle navigation
-          if (Navigator.canPop(context)) {
-            Navigator.pop(context);
-          } else {
-            // If we can't pop, navigate to home
-            Navigator.of(context).pushNamedAndRemoveUntil(
-              '/',
-              (route) => false,
-            );
-          }
+        if (!mounted) return;
+
+        // Only pop if we can, otherwise let AuthWrapper handle navigation
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        } else {
+          // If we can't pop, navigate to home
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/',
+            (route) => false,
+          );
         }
       }
     } catch (e) {
@@ -210,49 +210,48 @@ class _LoginPageState extends State<LoginPage> {
         debugPrint('   Final Photo URL: ${currentUser.photoURL}');
 
         // Success - load data
-        if (context.mounted) {
-          debugPrint('📊 Loading diary entries...');
-          context.read<DiaryBloc>().add(LoadDiaryEntries());
+        if (!mounted) return;
+        debugPrint('📊 Loading diary entries...');
+        context.read<DiaryBloc>().add(LoadDiaryEntries());
 
-          // Wait for auth state to propagate
-          debugPrint('⏳ Waiting for auth state to propagate...');
-          await Future.delayed(const Duration(milliseconds: 500));
+        // Wait for auth state to propagate
+        debugPrint('⏳ Waiting for auth state to propagate...');
+        await Future.delayed(const Duration(milliseconds: 500));
 
-          // Verify user is still authenticated
-          final verifiedUser = FirebaseAuth.instance.currentUser;
-          debugPrint('🔍 Verifying user after delay...');
-          debugPrint(
-              '   Verified User: ${verifiedUser != null ? "Present" : "NULL"}');
-          debugPrint('   Verified Email: ${verifiedUser?.email}');
+        if (!mounted) return;
 
-          if (verifiedUser != null && context.mounted) {
-            debugPrint('✅ User verified, starting navigation...');
+        // Verify user is still authenticated
+        final verifiedUser = FirebaseAuth.instance.currentUser;
+        debugPrint('🔍 Verifying user after delay...');
+        debugPrint(
+            '   Verified User: ${verifiedUser != null ? "Present" : "NULL"}');
+        debugPrint('   Verified Email: ${verifiedUser?.email}');
 
-            // Only pop if we can, otherwise navigate to home
-            if (Navigator.canPop(context)) {
-              debugPrint('🚪 Navigation: Popping current route');
-              Navigator.pop(context);
-            } else {
-              debugPrint(
-                  '🚪 Navigation: Cannot pop, using pushNamedAndRemoveUntil');
-              Navigator.of(context).pushNamedAndRemoveUntil(
-                '/',
-                (route) => false,
-              );
-            }
-            debugPrint('✅ Navigation complete!');
+        if (verifiedUser != null) {
+          debugPrint('✅ User verified, starting navigation...');
+
+          // Only pop if we can, otherwise navigate to home
+          if (Navigator.canPop(context)) {
+            debugPrint('🚪 Navigation: Popping current route');
+            Navigator.pop(context);
           } else {
-            debugPrint('❌ Navigation failed: User not verified after delay');
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                      'Login successful but navigation failed. Please restart the app.'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            }
+            debugPrint(
+                '🚪 Navigation: Cannot pop, using pushNamedAndRemoveUntil');
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/',
+              (route) => false,
+            );
           }
+          debugPrint('✅ Navigation complete!');
+        } else {
+          debugPrint('❌ Navigation failed: User not verified after delay');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Login successful but navigation failed. Please restart the app.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
         }
       }
     } on FirebaseAuthException catch (e) {
@@ -323,31 +322,32 @@ class _LoginPageState extends State<LoginPage> {
           password: _passwordController.text.trim(),
         );
       }
-      if (context.mounted) {
-        // Trigger data load immediately
-        context.read<DiaryBloc>().add(LoadDiaryEntries());
-        context.read<ReminderBloc>().add(LoadReminders());
+      if (!mounted) return;
+      // Trigger data load immediately
+      context.read<DiaryBloc>().add(LoadDiaryEntries());
+      context.read<ReminderBloc>().add(LoadReminders());
 
-        // Wait a bit for auth state to update
-        await Future.delayed(const Duration(milliseconds: 100));
+      // Wait a bit for auth state to update
+      await Future.delayed(const Duration(milliseconds: 100));
 
-        if (!context.mounted) return;
+      if (!mounted) return;
 
-        // Only pop if we can, otherwise navigate to home
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context);
-        } else {
-          Navigator.of(context).pushNamedAndRemoveUntil(
-            '/',
-            (route) => false,
-          );
-        }
+      // Only pop if we can, otherwise navigate to home
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      } else {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/',
+          (route) => false,
+        );
       }
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? 'Authentication Failed')),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));

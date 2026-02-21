@@ -156,7 +156,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                     color: isDark ? AppTheme.darkGrey : AppTheme.white,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: Colors.cyan.withOpacity(0.3),
+                      color: Colors.cyan.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -410,7 +410,8 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
         borderRadius: BorderRadius.circular(16), // Reduced from 20
         boxShadow: [
           BoxShadow(
-            color: (hasStreak ? Colors.orange : Colors.grey).withOpacity(0.3),
+            color: (hasStreak ? Colors.orange : Colors.grey)
+                .withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -473,12 +474,12 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
         color: isDark ? AppTheme.darkGrey : AppTheme.white,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: Colors.cyan.withOpacity(0.2),
+          color: Colors.cyan.withValues(alpha: 0.2),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.cyan.withOpacity(0.05),
+            color: Colors.cyan.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -489,7 +490,8 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.spa, color: Colors.cyan.withOpacity(0.5), size: 18),
+              Icon(Icons.spa,
+                  color: Colors.cyan.withValues(alpha: 0.5), size: 18),
               const SizedBox(width: 8),
               Text(
                 'DAILY AFFIRMATION',
@@ -497,11 +499,12 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 2,
-                  color: Colors.cyan.withOpacity(0.8),
+                  color: Colors.cyan.withValues(alpha: 0.8),
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.spa, color: Colors.cyan.withOpacity(0.5), size: 18),
+              Icon(Icons.spa,
+                  color: Colors.cyan.withValues(alpha: 0.5), size: 18),
             ],
           ),
           const SizedBox(height: 20),
@@ -521,7 +524,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
             height: 3,
             width: 40,
             decoration: BoxDecoration(
-              color: Colors.cyan.withOpacity(0.2),
+              color: Colors.cyan.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -544,8 +547,8 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDark
-              ? Colors.cyan.withOpacity(0.3)
-              : Colors.cyan.withOpacity(0.5),
+              ? Colors.cyan.withValues(alpha: 0.3)
+              : Colors.cyan.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -562,7 +565,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.cyan.withOpacity(0.1),
+                    color: Colors.cyan.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(icon, size: 24, color: Colors.cyan),
@@ -604,8 +607,8 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDark
-              ? Colors.cyan.withOpacity(0.3)
-              : Colors.cyan.withOpacity(0.5),
+              ? Colors.cyan.withValues(alpha: 0.3)
+              : Colors.cyan.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -631,7 +634,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.cyan.withOpacity(0.1),
+                    color: Colors.cyan.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(icon, size: 24, color: Colors.cyan),
@@ -740,7 +743,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
               color: isDark ? AppTheme.darkGrey : Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: Colors.cyan.withOpacity(0.3),
+                color: Colors.cyan.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),
@@ -814,7 +817,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                   );
                 }),
                 const SizedBox(height: 8),
-                Divider(color: Colors.cyan.withOpacity(0.2)),
+                Divider(color: Colors.cyan.withValues(alpha: 0.2)),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -868,12 +871,12 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
             color: isDark ? AppTheme.darkGrey : AppTheme.white,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Colors.cyan.withOpacity(0.1),
+              color: Colors.cyan.withValues(alpha: 0.1),
             ),
           ),
           child: Column(
             children: [
-              Icon(icon, size: 48, color: Colors.cyan.withOpacity(0.2)),
+              Icon(icon, size: 48, color: Colors.cyan.withValues(alpha: 0.2)),
               const SizedBox(height: 16),
               Text(
                 message,

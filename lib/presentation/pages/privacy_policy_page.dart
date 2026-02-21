@@ -68,7 +68,7 @@ class PrivacyPolicyPage extends StatelessWidget {
               child: Text(
                 'Last Updated: January 2026',
                 style: TextStyle(
-                  color: primaryColor.withOpacity(0.5),
+                  color: primaryColor.withValues(alpha: 0.5),
                   fontSize: 12,
                 ),
               ),
@@ -103,7 +103,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             content,
             style: TextStyle(
               fontSize: 15,
-              color: primaryColor.withOpacity(0.8),
+              color: primaryColor.withValues(alpha: 0.8),
               height: 1.6,
             ),
           ),

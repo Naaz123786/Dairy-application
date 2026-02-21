@@ -66,7 +66,7 @@ class ParticleModel {
     speed = random.nextDouble() * 2 + 1;
     opacity = random.nextDouble() * 0.5 + 0.2;
     angle = random.nextDouble() * math.pi * 2;
-    color = baseColor.withOpacity(opacity);
+    color = baseColor.withValues(alpha: opacity);
     rotation = random.nextDouble() * math.pi * 2;
     rotationSpeed = (random.nextDouble() - 0.5) * 0.1;
     vx = 0;
@@ -99,7 +99,7 @@ class ParticleModel {
             (math.sin(DateTime.now().millisecondsSinceEpoch / 400 + x) + 1) /
                 2 *
                 0.7;
-        color = baseColor.withOpacity(opacity);
+        color = baseColor.withValues(alpha: opacity);
         dy = speed * 0.2;
         break;
       case ParticleType.circle:
@@ -150,7 +150,7 @@ class ParticlePainter extends CustomPainter {
     // 1. Draw Mesh Blobs (Ultra-soft ambient layer)
     for (var blob in blobs) {
       final blobPaint = Paint()
-        ..color = baseColor.withOpacity(blob.opacity)
+        ..color = baseColor.withValues(alpha: blob.opacity)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, blob.size / 3);
       canvas.drawCircle(Offset(blob.x, blob.y), blob.size / 2, blobPaint);
     }
@@ -220,7 +220,7 @@ class ParticlePainter extends CustomPainter {
   void _drawEmber(Canvas canvas, double size, Paint paint) {
     canvas.drawCircle(Offset.zero, size / 2, paint);
     final glowPaint = Paint()
-      ..color = paint.color.withOpacity(0.3)
+      ..color = paint.color.withValues(alpha: 0.3)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
     canvas.drawCircle(Offset.zero, size, glowPaint);
   }

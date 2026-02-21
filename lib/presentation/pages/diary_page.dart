@@ -234,9 +234,10 @@ class _DiaryPageState extends State<DiaryPage> {
                 }
               });
             },
-            backgroundColor:
-                isDark ? AppTheme.darkGrey : AppTheme.black.withOpacity(0.05),
-            selectedColor: Colors.cyan.withOpacity(0.2),
+            backgroundColor: isDark
+                ? AppTheme.darkGrey
+                : AppTheme.black.withValues(alpha: 0.05),
+            selectedColor: Colors.cyan.withValues(alpha: 0.2),
             checkmarkColor: Colors.cyan,
             labelStyle: TextStyle(
               color: isSelected
@@ -252,8 +253,8 @@ class _DiaryPageState extends State<DiaryPage> {
                 color: isSelected
                     ? Colors.cyan
                     : (isDark
-                        ? AppTheme.white.withOpacity(0.1)
-                        : AppTheme.black.withOpacity(0.1)),
+                        ? AppTheme.white.withValues(alpha: 0.1)
+                        : AppTheme.black.withValues(alpha: 0.1)),
               ),
             ),
           );
@@ -313,16 +314,16 @@ class _DiaryPageState extends State<DiaryPage> {
                     Icons.book_outlined,
                     size: 80,
                     color: isDark
-                        ? AppTheme.white.withOpacity(0.2)
-                        : AppTheme.black.withOpacity(0.2),
+                        ? AppTheme.white.withValues(alpha: 0.2)
+                        : AppTheme.black.withValues(alpha: 0.2),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'No diary entries yet',
                     style: TextStyle(
                       color: isDark
-                          ? AppTheme.white.withOpacity(0.5)
-                          : AppTheme.black.withOpacity(0.5),
+                          ? AppTheme.white.withValues(alpha: 0.5)
+                          : AppTheme.black.withValues(alpha: 0.5),
                       fontSize: 18,
                     ),
                   ),
@@ -397,8 +398,8 @@ class _DiaryPageState extends State<DiaryPage> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDark
-              ? Colors.cyan.withOpacity(0.3)
-              : Colors.cyan.withOpacity(0.5),
+              ? Colors.cyan.withValues(alpha: 0.3)
+              : Colors.cyan.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -440,13 +441,13 @@ class _DiaryPageState extends State<DiaryPage> {
                         ),
                         decoration: BoxDecoration(
                           color: isDark
-                              ? AppTheme.white.withOpacity(0.1)
-                              : AppTheme.black.withOpacity(0.05),
+                              ? AppTheme.white.withValues(alpha: 0.1)
+                              : AppTheme.black.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: isDark
-                                ? AppTheme.white.withOpacity(0.2)
-                                : AppTheme.black.withOpacity(0.1),
+                                ? AppTheme.white.withValues(alpha: 0.2)
+                                : AppTheme.black.withValues(alpha: 0.1),
                           ),
                         ),
                         child: Text(
@@ -464,8 +465,8 @@ class _DiaryPageState extends State<DiaryPage> {
                   DateFormat('EEEE, d MMMM y').format(entry.date),
                   style: TextStyle(
                     color: isDark
-                        ? AppTheme.white.withOpacity(0.5)
-                        : AppTheme.black.withOpacity(0.5),
+                        ? AppTheme.white.withValues(alpha: 0.5)
+                        : AppTheme.black.withValues(alpha: 0.5),
                     fontSize: 12,
                   ),
                 ),
@@ -479,10 +480,10 @@ class _DiaryPageState extends State<DiaryPage> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.cyan.withOpacity(0.1),
+                          color: Colors.cyan.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
-                          border:
-                              Border.all(color: Colors.cyan.withOpacity(0.2)),
+                          border: Border.all(
+                              color: Colors.cyan.withValues(alpha: 0.2)),
                         ),
                         child: Text(
                           '#$tag',
