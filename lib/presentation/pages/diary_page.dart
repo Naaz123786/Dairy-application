@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/routes/app_routes.dart';
@@ -210,6 +211,28 @@ class _DiaryPageState extends State<DiaryPage> {
     }
   }
 
+  /// Extracts plain readable text from a Quill delta JSON string.
+  String _extractPlainText(String quillJson) {
+    try {
+      final decoded = quillJson.trim();
+      if (!decoded.startsWith('[') && !decoded.startsWith('{')) {
+        return decoded;
+      }
+      final List ops = decoded.startsWith('[')
+          ? (jsonDecode(decoded) as List)
+          : ((jsonDecode(decoded) as Map)['ops'] as List);
+      final buffer = StringBuffer();
+      for (final op in ops) {
+        if (op is Map && op['insert'] is String) {
+          buffer.write(op['insert']);
+        }
+      }
+      return buffer.toString();
+    } catch (_) {
+      return quillJson;
+    }
+  }
+
   Widget _buildTagFilterBar(List<String> tags, bool isDark) {
     return Container(
       height: 50,
@@ -293,10 +316,10 @@ class _DiaryPageState extends State<DiaryPage> {
             ..sort();
 
           final filteredEntries = state.entries.where((entry) {
-            final matchesSearch = entry.title
-                    .toLowerCase()
-                    .contains(_searchQuery) ||
-                entry.content.toLowerCase().contains(_searchQuery) ||
+            final plainContent = _extractPlainText(entry.content).toLowerCase();
+            final matchesSearch = _searchQuery.isEmpty ||
+                entry.title.toLowerCase().contains(_searchQuery) ||
+                plainContent.contains(_searchQuery) ||
                 entry.tags.any((t) => t.toLowerCase().contains(_searchQuery));
 
             final matchesTags = _selectedTags.isEmpty ||

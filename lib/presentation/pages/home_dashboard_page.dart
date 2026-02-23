@@ -48,6 +48,8 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
             _buildGreeting(isDark),
             const SizedBox(height: 24),
             _buildAffirmationCard(isDark),
+            const SizedBox(height: 24),
+            _buildOnThisDaySection(isDark),
             const SizedBox(height: 32),
             const Text(
               'Quick Stats',
@@ -103,6 +105,152 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildOnThisDaySection(bool isDark) {
+    return BlocBuilder<DiaryBloc, DiaryState>(
+      builder: (context, state) {
+        if (state is! DiaryLoaded) return const SizedBox.shrink();
+
+        final now = DateTime.now();
+        final todayEntries = state.entries
+            .where((e) =>
+                e.date.month == now.month &&
+                e.date.day == now.day &&
+                e.date.year < now.year)
+            .toList()
+          ..sort((a, b) => b.date.year.compareTo(a.date.year));
+
+        if (todayEntries.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text('📅', style: TextStyle(fontSize: 20)),
+                const SizedBox(width: 8),
+                const Text(
+                  'On This Day',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.cyan,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${todayEntries.length} memor${todayEntries.length == 1 ? 'y' : 'ies'}',
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...todayEntries.take(3).map((entry) {
+              final yearsAgo = now.year - entry.date.year;
+              return GestureDetector(
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  AppRoutes.diaryEdit,
+                  arguments: entry,
+                ),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.purple.withValues(alpha: 0.3),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.purple.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          children: [
+                            const Text('🕰️', style: TextStyle(fontSize: 18)),
+                            Text(
+                              '$yearsAgo yr${yearsAgo > 1 ? 's' : ''}',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.purple,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              entry.title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              DateFormat('EEEE, MMMM d, y').format(entry.date),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            if (entry.mood.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.cyan.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  entry.mood,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.cyan,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        size: 14,
+                        color: Colors.grey,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
+        );
+      },
     );
   }
 

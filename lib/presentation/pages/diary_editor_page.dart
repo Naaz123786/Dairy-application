@@ -139,6 +139,20 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
         ),
         elevation: 0,
         actions: [
+          // Writing Prompts button
+          IconButton(
+            icon: const Icon(Icons.lightbulb_outline, color: Colors.amber),
+            tooltip: 'Writing Prompts',
+            onPressed: () => _showWritingPrompts(isDark),
+          ),
+          // Templates button (only for new entries)
+          if (widget.entry == null)
+            IconButton(
+              icon: const Icon(Icons.dashboard_customize_outlined,
+                  color: Colors.cyan),
+              tooltip: 'Entry Templates',
+              onPressed: () => _showTemplates(isDark),
+            ),
           Container(
             margin: const EdgeInsets.only(right: 8),
             child: FilledButton.icon(
@@ -191,6 +205,368 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
         ),
       ),
     );
+  }
+
+  // ─────────────────────────── Writing Prompts ───────────────────────────
+
+  void _showWritingPrompts(bool isDark) {
+    final prompts = {
+      'Gratitude ✨': [
+        'What are 3 things you are grateful for today?',
+        'Who made you smile today, and why?',
+        'What simple pleasure did you enjoy today?',
+        'Describe a moment today that made you feel at peace.',
+        'What is something you take for granted that you appreciate today?',
+      ],
+      'Reflection 🌙': [
+        'What was the highlight of your day?',
+        'What challenged you today and how did you handle it?',
+        'What would you do differently if you could re-live today?',
+        'What did you learn about yourself today?',
+        'How did today compare to your expectations?',
+      ],
+      'Emotions 💭': [
+        'How are you truly feeling right now, beneath the surface?',
+        'What emotion has been dominant today and what triggered it?',
+        'Write a letter to your future self about how you feel today.',
+        'What fear did you face (or avoid) today?',
+        'What made your heart feel heavy today? What lightened it?',
+      ],
+      'Goals & Dreams 🚀': [
+        'What goal did you make progress on today?',
+        'What is one small step you can take tomorrow towards your dream?',
+        'What does your ideal life look like in 5 years?',
+        'What habit are you proud of building recently?',
+        'What is one thing you keep procrastinating on, and why?',
+      ],
+      'Creativity 🎨': [
+        'If today were a colour, what colour would it be and why?',
+        'Write about a place you would love to visit and why.',
+        'Describe your day as if it were a chapter in a novel.',
+        'What song defines how you feel right now?',
+        'If you could have dinner with anyone, who and why?',
+      ],
+      'Mindfulness 🧘': [
+        'What sensations are you aware of in your body right now?',
+        'What thoughts keep repeating in your mind today?',
+        'Describe something beautiful you noticed today.',
+        'What does silence mean to you today?',
+        'What are you holding onto that you could let go of?',
+      ],
+    };
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.75,
+          maxChildSize: 0.95,
+          minChildSize: 0.4,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        Icon(Icons.lightbulb, color: Colors.amber, size: 24),
+                        SizedBox(width: 10),
+                        Text(
+                          'Writing Prompts',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Spacer(),
+                        Text(
+                          'Tap to use',
+                          style: TextStyle(color: Colors.grey, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(16),
+                      children: prompts.entries.map((category) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 10, horizontal: 4),
+                              child: Text(
+                                category.key,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: Colors.cyan,
+                                ),
+                              ),
+                            ),
+                            ...category.value.map((prompt) {
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                    color: Colors.amber.withValues(alpha: 0.2),
+                                  ),
+                                ),
+                                child: ListTile(
+                                  title: Text(
+                                    prompt,
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                  trailing: const Icon(
+                                    Icons.add_circle_outline,
+                                    color: Colors.amber,
+                                    size: 20,
+                                  ),
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                    _insertPrompt(prompt);
+                                  },
+                                ),
+                              );
+                            }),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _insertPrompt(String prompt) {
+    final index = _quillController.selection.baseOffset;
+    final safeIndex = index < 0 ? 0 : index;
+    _quillController.document.insert(safeIndex, '$prompt\n');
+    _quillController.updateSelection(
+      TextSelection.collapsed(offset: safeIndex + prompt.length + 1),
+      ChangeSource.local,
+    );
+  }
+
+  // ─────────────────────────── Entry Templates ───────────────────────────
+
+  void _showTemplates(bool isDark) {
+    final templates = [
+      {
+        'name': 'Gratitude Journal',
+        'emoji': '🙏',
+        'description': 'Count your blessings today',
+        'title':
+            'Gratitude — ${DateFormat('d MMM yyyy').format(DateTime.now())}',
+        'content': [
+          {'insert': 'Three things I am grateful for today:\n'},
+          {'insert': '1. '},
+          {'insert': '\n'},
+          {'insert': '2. '},
+          {'insert': '\n'},
+          {'insert': '3. '},
+          {'insert': '\n\n'},
+          {'insert': 'One person I appreciate today:\n'},
+          {'insert': '\n\n'},
+          {'insert': 'A small moment that made me smile:\n'},
+          {'insert': '\n'},
+        ],
+      },
+      {
+        'name': 'Dream Log',
+        'emoji': '🌙',
+        'description': 'Record your dream before it fades',
+        'title': 'Dream — ${DateFormat('d MMM yyyy').format(DateTime.now())}',
+        'content': [
+          {'insert': 'What I dreamed about:\n'},
+          {'insert': '\n\n'},
+          {'insert': 'Key symbols or feelings:\n'},
+          {'insert': '\n\n'},
+          {'insert': 'What it might mean:\n'},
+          {'insert': '\n'},
+        ],
+      },
+      {
+        'name': 'Study Notes',
+        'emoji': '📚',
+        'description': 'Document what you learned today',
+        'title': 'Study — ${DateFormat('d MMM yyyy').format(DateTime.now())}',
+        'content': [
+          {'insert': 'Subject / Topic:\n'},
+          {'insert': '\n\n'},
+          {'insert': 'Key things I learned:\n'},
+          {'insert': '• \n'},
+          {'insert': '• \n'},
+          {'insert': '• \n\n'},
+          {'insert': 'Questions I still have:\n'},
+          {'insert': '\n\n'},
+          {'insert': 'Action for tomorrow:\n'},
+          {'insert': '\n'},
+        ],
+      },
+      {
+        'name': 'Daily Reflection',
+        'emoji': '🌅',
+        'description': 'End-of-day review',
+        'title':
+            'Reflection — ${DateFormat('d MMM yyyy').format(DateTime.now())}',
+        'content': [
+          {'insert': 'Highlight of my day:\n'},
+          {'insert': '\n\n'},
+          {'insert': 'What challenged me:\n'},
+          {'insert': '\n\n'},
+          {'insert': 'How I handled it:\n'},
+          {'insert': '\n\n'},
+          {'insert': 'What I would do differently:\n'},
+          {'insert': '\n\n'},
+          {'insert': 'Tomorrow I will focus on:\n'},
+          {'insert': '\n'},
+        ],
+      },
+      {
+        'name': 'Mood Check-in',
+        'emoji': '💙',
+        'description': 'Check in with your emotions',
+        'title':
+            'Mood Check-in — ${DateFormat('d MMM yyyy').format(DateTime.now())}',
+        'content': [
+          {'insert': 'Right now I feel:\n'},
+          {'insert': '\n\n'},
+          {'insert': 'What triggered this feeling:\n'},
+          {'insert': '\n\n'},
+          {'insert': 'What my body is telling me:\n'},
+          {'insert': '\n\n'},
+          {'insert': 'What I need right now:\n'},
+          {'insert': '\n'},
+        ],
+      },
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const Row(
+                children: [
+                  Icon(Icons.dashboard_customize, color: Colors.cyan, size: 22),
+                  SizedBox(width: 10),
+                  Text(
+                    'Entry Templates',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Choose a template to get started',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              ...templates.map((t) {
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                  leading: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.cyan.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        t['emoji'] as String,
+                        style: const TextStyle(fontSize: 22),
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    t['name'] as String,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    t['description'] as String,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios,
+                      size: 14, color: Colors.grey),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _applyTemplate(t);
+                  },
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _applyTemplate(Map<String, dynamic> template) {
+    // Set the title
+    _titleController.text = template['title'] as String;
+
+    // Build Quill delta document from the template's content list
+    final ops = template['content'] as List<Map<String, dynamic>>;
+    final deltaJson = {'ops': ops};
+    final document = Document.fromJson(deltaJson['ops'] as List);
+    setState(() {
+      _quillController = QuillController(
+        document: document,
+        selection: const TextSelection.collapsed(offset: 0),
+      );
+    });
   }
 
   // ... (Other build methods stay same)
