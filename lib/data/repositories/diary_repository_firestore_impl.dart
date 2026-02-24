@@ -116,6 +116,7 @@ class DiaryRepositoryFirestoreImpl implements DiaryRepository {
       createdAt: model.createdAt,
       updatedAt: model.updatedAt,
       images: model.images,
+      tags: model.tags,
     );
   }
 
@@ -129,6 +130,7 @@ class DiaryRepositoryFirestoreImpl implements DiaryRepository {
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       images: entity.images,
+      tags: entity.tags,
     );
   }
 }

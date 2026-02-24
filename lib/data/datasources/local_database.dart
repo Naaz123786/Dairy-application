@@ -17,6 +17,7 @@ class LocalDatabase {
       'is_diary_lock_enabled'; // Section lock
   static const String _isBiometricEnabledKey = 'is_biometric_enabled';
   static const String _themeModeKey = 'theme_mode';
+  static const String _isDailyReminderEnabledKey = 'is_daily_reminder_enabled';
   static const String _lastSyncTimeKey = 'last_sync_time';
   static const String _keyStorageKey = 'hive_encryption_key';
 
@@ -126,6 +127,15 @@ class LocalDatabase {
 
   Future<void> setThemeMode(String mode) async {
     await _settingsBox?.put(_themeModeKey, mode);
+  }
+
+  bool isDailyReminderEnabled() {
+    return _settingsBox?.get(_isDailyReminderEnabledKey, defaultValue: false) ??
+        false;
+  }
+
+  Future<void> setDailyReminderEnabled(bool enabled) async {
+    await _settingsBox?.put(_isDailyReminderEnabledKey, enabled);
   }
 
   String? getLastSyncTime() {

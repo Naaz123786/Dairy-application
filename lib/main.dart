@@ -14,6 +14,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'data/datasources/local_database.dart';
 import 'presentation/widgets/theme_background.dart';
+import 'core/services/notification_service.dart';
 
 void main() {
   runZonedGuarded(() async {
@@ -31,6 +32,16 @@ void main() {
     await di.init();
 
     final localDb = di.sl<LocalDatabase>();
+
+    // Initialize notification service
+    final notificationService = NotificationService();
+    await notificationService.init();
+
+    // Reschedule daily reminder if enabled
+    if (localDb.isDailyReminderEnabled()) {
+      await notificationService.scheduleDailyReminder();
+    }
+
     final initialRoute =
         localDb.isOnboardingComplete() ? AppRoutes.home : AppRoutes.onboarding;
 

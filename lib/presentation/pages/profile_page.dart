@@ -9,6 +9,7 @@ import '../bloc/diary_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../data/datasources/local_database.dart';
 import '../bloc/theme_cubit.dart';
+import '../../core/services/notification_service.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -342,33 +343,56 @@ class ProfilePage extends StatelessWidget {
   }
 
   void _showNotificationSettings(BuildContext context) {
+    final localDb = di.sl<LocalDatabase>();
+    final notificationService = NotificationService();
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Notifications'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CheckboxListTile(
-              title: const Text('Daily Reminders'),
-              value: true,
-              activeColor: Colors.cyan,
-              onChanged: (v) {},
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          bool isReminderEnabled = localDb.isDailyReminderEnabled();
+
+          return AlertDialog(
+            title: const Text('Notifications'),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SwitchListTile(
+                  title: const Text('Daily Writing Reminder'),
+                  subtitle: const Text('Get notified at 9 PM to write'),
+                  value: isReminderEnabled,
+                  activeColor: Colors.cyan,
+                  onChanged: (bool value) async {
+                    await localDb.setDailyReminderEnabled(value);
+                    if (value) {
+                      await notificationService.scheduleDailyReminder();
+                    } else {
+                      await notificationService.cancelReminder();
+                    }
+                    setDialogState(() {
+                      isReminderEnabled = value;
+                    });
+                  },
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Consistent writing helps in mindfulness and better self-reflection.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
+              ],
             ),
-            CheckboxListTile(
-              title: const Text('Mood Tracking Alerts'),
-              value: true,
-              activeColor: Colors.cyan,
-              onChanged: (v) {},
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Done'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Done'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
