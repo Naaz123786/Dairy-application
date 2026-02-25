@@ -20,6 +20,7 @@ class LocalDatabase {
   static const String _isDailyReminderEnabledKey = 'is_daily_reminder_enabled';
   static const String _lastSyncTimeKey = 'last_sync_time';
   static const String _keyStorageKey = 'hive_encryption_key';
+  static const String _favoriteEntryIdsKey = 'favorite_entry_ids';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
@@ -150,5 +151,27 @@ class LocalDatabase {
     await _diaryBox?.clear();
     await _remindersBox?.clear();
     // We don't clear settingsBox to keep onboarding status and theme
+  }
+
+  Set<String> getFavoriteEntryIds() {
+    final raw = _settingsBox?.get(_favoriteEntryIdsKey);
+    if (raw is List) {
+      return raw.whereType<String>().toSet();
+    }
+    return <String>{};
+  }
+
+  bool isEntryFavorite(String entryId) {
+    return getFavoriteEntryIds().contains(entryId);
+  }
+
+  Future<void> setEntryFavorite(String entryId, bool isFavorite) async {
+    final ids = getFavoriteEntryIds();
+    if (isFavorite) {
+      ids.add(entryId);
+    } else {
+      ids.remove(entryId);
+    }
+    await _settingsBox?.put(_favoriteEntryIdsKey, ids.toList()..sort());
   }
 }

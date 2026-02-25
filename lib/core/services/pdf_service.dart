@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import '../../domain/entities/diary_entry.dart';
+import '../util/json_utils.dart';
 
 class PdfService {
   /// Generate PDF from a diary entry
@@ -17,7 +18,7 @@ class PdfService {
 
     // Pre-load images to Uint8List
     final List<Uint8List> imageBytesList = [];
-    for (final path in entry.images.take(4)) {
+    for (final path in entry.images) {
       try {
         if (path.startsWith('data:image')) {
           final base64String = path.split(',').last;
@@ -43,10 +44,12 @@ class PdfService {
     try {
       if (displayContent.trim().startsWith('[') ||
           displayContent.trim().startsWith('{')) {
-        final dynamic decoded = jsonDecode(displayContent);
-        if (decoded is List) {
+        final decoded = JsonUtils.safeDecode(displayContent);
+        final ops = JsonUtils.getOps(decoded);
+
+        if (ops != null) {
           final StringBuffer buffer = StringBuffer();
-          for (final op in decoded) {
+          for (final op in ops) {
             if (op is Map && op.containsKey('insert')) {
               final insert = op['insert'];
               if (insert is String) {
@@ -62,131 +65,149 @@ class PdfService {
     }
 
     pdf.addPage(
-      pw.Page(
+      pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(24),
         build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              // Header
-              pw.Container(
-                padding: const pw.EdgeInsets.all(20),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.cyan50,
-                  borderRadius: pw.BorderRadius.circular(10),
-                ),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      entry.title,
-                      style: pw.TextStyle(
-                        fontSize: 24,
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.cyan900,
-                      ),
+          final widgets = <pw.Widget>[];
+
+          widgets.add(
+            pw.Container(
+              padding: const pw.EdgeInsets.all(18),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.cyan50,
+                borderRadius: pw.BorderRadius.circular(12),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    entry.title,
+                    style: pw.TextStyle(
+                      fontSize: 22,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.cyan900,
                     ),
-                    pw.SizedBox(height: 8),
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text(
-                          DateFormat('EEEE, MMMM d, y').format(entry.date),
-                          style: const pw.TextStyle(
-                            fontSize: 12,
-                            color: PdfColors.grey700,
+                  ),
+                  pw.SizedBox(height: 8),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        DateFormat('EEEE, MMMM d, y').format(entry.date),
+                        style: const pw.TextStyle(
+                          fontSize: 11,
+                          color: PdfColors.grey700,
+                        ),
+                      ),
+                      if (entry.mood.isNotEmpty)
+                        pw.Container(
+                          padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: pw.BoxDecoration(
+                            color: PdfColors.cyan,
+                            borderRadius: pw.BorderRadius.circular(12),
+                          ),
+                          child: pw.Text(
+                            entry.mood,
+                            style: const pw.TextStyle(
+                              fontSize: 10,
+                              color: PdfColors.white,
+                            ),
                           ),
                         ),
-                        if (entry.mood.isNotEmpty)
-                          pw.Container(
-                            padding: const pw.EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 4,
-                            ),
-                            decoration: pw.BoxDecoration(
-                              color: PdfColors.cyan,
-                              borderRadius: pw.BorderRadius.circular(12),
-                            ),
-                            child: pw.Text(
-                              entry.mood,
-                              style: const pw.TextStyle(
-                                fontSize: 10,
-                                color: PdfColors.white,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
-              pw.SizedBox(height: 20),
+            ),
+          );
 
-              // Content
+          widgets.add(pw.SizedBox(height: 16));
+
+          widgets.add(
+            pw.Text(
+              displayContent,
+              style: const pw.TextStyle(
+                fontSize: 13,
+                lineSpacing: 1.5,
+              ),
+            ),
+          );
+
+          if (imageBytesList.isNotEmpty) {
+            widgets.add(pw.SizedBox(height: 18));
+            widgets.add(pw.Divider());
+            widgets.add(pw.SizedBox(height: 10));
+            widgets.add(
               pw.Text(
-                displayContent,
-                style: const pw.TextStyle(
-                  fontSize: 14,
-                  lineSpacing: 1.5,
+                'Attached Images (${imageBytesList.length})',
+                style: pw.TextStyle(
+                  fontSize: 12,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.grey700,
                 ),
               ),
-
-              pw.SizedBox(height: 20),
-
-              // Images (if any)
-              if (imageBytesList.isNotEmpty) ...[
-                pw.Divider(),
-                pw.SizedBox(height: 10),
-                pw.Text(
-                  'Attached Images',
-                  style: pw.TextStyle(
-                    fontSize: 12,
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.grey700,
-                  ),
-                ),
-                pw.SizedBox(height: 10),
-                pw.Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: imageBytesList.map((bytes) {
-                    return pw.Container(
-                      width: 160,
-                      height: 160,
-                      decoration: pw.BoxDecoration(
-                        border: pw.Border.all(color: PdfColors.grey300),
-                        borderRadius: pw.BorderRadius.circular(8),
+            );
+            widgets.add(pw.SizedBox(height: 10));
+            widgets.add(
+              pw.Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: imageBytesList.map((bytes) {
+                  return pw.Container(
+                    width: 160,
+                    height: 160,
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: PdfColors.grey300),
+                      borderRadius: pw.BorderRadius.circular(8),
+                    ),
+                    child: pw.ClipRRect(
+                      horizontalRadius: 8,
+                      verticalRadius: 8,
+                      child: pw.Image(
+                        pw.MemoryImage(bytes),
+                        fit: pw.BoxFit.cover,
                       ),
-                      child: pw.ClipRRect(
-                        horizontalRadius: 8,
-                        verticalRadius: 8,
-                        child: pw.Image(
-                          pw.MemoryImage(bytes),
-                          fit: pw.BoxFit.cover,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            );
+          }
 
-              pw.Spacer(),
-
-              // Footer
+          return widgets;
+        },
+        footer: (context) => pw.Padding(
+          padding: const pw.EdgeInsets.only(top: 10),
+          child: pw.Column(
+            children: [
               pw.Divider(),
-              pw.SizedBox(height: 10),
-              pw.Center(
-                child: pw.Text(
-                  'Generated by Personal Diary App',
-                  style: const pw.TextStyle(
-                    fontSize: 10,
-                    color: PdfColors.grey600,
+              pw.SizedBox(height: 6),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    'Generated by Personal Diary App',
+                    style: const pw.TextStyle(
+                      fontSize: 9,
+                      color: PdfColors.grey600,
+                    ),
                   ),
-                ),
+                  pw.Text(
+                    'Page ${context.pageNumber} / ${context.pagesCount}',
+                    style: const pw.TextStyle(
+                      fontSize: 9,
+                      color: PdfColors.grey600,
+                    ),
+                  ),
+                ],
               ),
             ],
-          );
-        },
+          ),
+        ),
       ),
     );
 

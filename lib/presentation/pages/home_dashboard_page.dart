@@ -17,6 +17,98 @@ class HomeDashboardPage extends StatefulWidget {
 }
 
 class _HomeDashboardPageState extends State<HomeDashboardPage> {
+  BoxDecoration _premiumCardDecoration(
+    bool isDark, {
+    Color accent = Colors.cyan,
+    double radius = 22,
+  }) {
+    return BoxDecoration(
+      color: isDark ? const Color(0xFF161616) : Colors.white,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.10)
+            : Colors.black.withValues(alpha: 0.06),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.08),
+          blurRadius: 18,
+          offset: const Offset(0, 10),
+        ),
+        BoxShadow(
+          color: accent.withValues(alpha: isDark ? 0.06 : 0.05),
+          blurRadius: 18,
+          offset: const Offset(0, 10),
+        ),
+      ],
+    );
+  }
+
+  Widget _sectionHeader(
+    bool isDark, {
+    required String title,
+    required IconData icon,
+    String? caption,
+    VoidCallback? onTap,
+    IconData? trailingIcon,
+  }) {
+    final header = Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: Colors.cyan.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.cyan.withValues(alpha: 0.20)),
+          ),
+          child: Icon(icon, color: Colors.cyan, size: 20),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.cyan,
+                ),
+              ),
+              if (caption != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  caption,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (trailingIcon != null)
+          Icon(trailingIcon,
+              size: 18,
+              color: isDark ? Colors.white54 : Colors.black45),
+      ],
+    );
+
+    if (onTap == null) return header;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: header,
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -31,13 +123,8 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Home',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.cyan,
-          ),
-        ),
+        title: const Text('Home'),
+        centerTitle: false,
       ),
       body: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -51,13 +138,11 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
             const SizedBox(height: 24),
             _buildOnThisDaySection(isDark),
             const SizedBox(height: 32),
-            const Text(
-              'Quick Stats',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.cyan,
-              ),
+            _sectionHeader(
+              isDark,
+              title: 'Quick Stats',
+              icon: Icons.insights,
+              caption: 'Your routines, exams, entries & birthdays at a glance',
             ),
             const SizedBox(height: 16),
             _buildStatsRow(isDark),
@@ -66,45 +151,68 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
             const SizedBox(height: 32),
             _buildBirthdaySection(isDark),
             const SizedBox(height: 32),
-            const Text(
-              'Quick Actions',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.cyan,
-              ),
+            _sectionHeader(
+              isDark,
+              title: 'Quick Actions',
+              icon: Icons.bolt,
+              caption: 'Jump into what you want to do next',
             ),
             const SizedBox(height: 16),
-            _buildQuickActionCard(
-              context,
-              isDark,
-              'Write a Diary Entry',
-              'Capture your thoughts',
-              Icons.edit_note,
-              AppRoutes.diaryEdit,
-            ),
-            const SizedBox(height: 12),
-            _buildQuickActionCard(
-              context,
-              isDark,
-              'Add a Routine',
-              'Build better habits',
-              Icons.schedule,
-              AppRoutes.planner,
-            ),
-            const SizedBox(height: 12),
-            _buildQuickActionCard(
-              context,
-              isDark,
-              'Add Birthday',
-              'Never forget special days',
-              Icons.cake,
-              AppRoutes.calendar,
-            ),
+            _buildQuickActionsGrid(context, isDark),
             const SizedBox(height: 80),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildQuickActionsGrid(BuildContext context, bool isDark) {
+    final actions = [
+      (
+        'Write',
+        'Diary entry',
+        Icons.edit_note,
+        AppRoutes.diaryEdit,
+        Colors.cyan,
+      ),
+      (
+        'Routine',
+        'Planner',
+        Icons.schedule,
+        AppRoutes.planner,
+        Colors.teal,
+      ),
+      (
+        'Birthday',
+        'Calendar',
+        Icons.cake,
+        AppRoutes.calendar,
+        Colors.pink,
+      ),
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: actions.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 2.2,
+      ),
+      itemBuilder: (context, index) {
+        final a = actions[index];
+        return _buildQuickActionTile(
+          context,
+          isDark,
+          title: a.$1,
+          subtitle: a.$2,
+          icon: a.$3,
+          route: a.$4,
+          accent: a.$5,
+        );
+      },
     );
   }
 
@@ -282,13 +390,11 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Upcoming Birthdays',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.cyan,
-              ),
+            _sectionHeader(
+              isDark,
+              title: 'Upcoming Birthdays',
+              icon: Icons.cake,
+              caption: 'So you never miss a special day',
             ),
             const SizedBox(height: 16),
             ListView.builder(
@@ -471,43 +577,84 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
               streak = _calculateStreak(state.entries);
             }
 
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ShaderMask(
-                        shaderCallback: (bounds) => const LinearGradient(
-                          colors: [Colors.cyan, Colors.lightBlueAccent],
-                        ).createShader(bounds),
-                        child: Text(
-                          '$greeting, $name',
-                          style: const TextStyle(
-                            fontSize: 24, // Reduced from 28
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: -0.5,
-                            color: Colors.white,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        DateFormat.yMMMMEEEEd().format(DateTime.now()),
-                        style: TextStyle(
-                          fontSize: 13, // Reduced from 15
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
+            return Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? [
+                          const Color(0xFF0E2B2E),
+                          const Color(0xFF121212),
+                        ]
+                      : [
+                          Colors.cyan.withValues(alpha: 0.10),
+                          Colors.white,
+                        ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                const SizedBox(width: 8),
-                _buildStreakBadge(streak, isDark),
-              ],
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(
+                  color: Colors.cyan.withValues(alpha: isDark ? 0.22 : 0.18),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.08),
+                    blurRadius: 22,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ShaderMask(
+                          shaderCallback: (bounds) => const LinearGradient(
+                            colors: [Colors.cyan, Colors.lightBlueAccent],
+                          ).createShader(bounds),
+                          child: Text(
+                            '$greeting, $name',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: -0.5,
+                              color: Colors.white,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          DateFormat('EEEE, d MMMM y').format(DateTime.now()),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color:
+                                isDark ? Colors.white70 : Colors.grey.shade700,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          streak > 0
+                              ? 'Keep your streak alive today'
+                              : 'Start a new streak with one entry',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.65)
+                                : Colors.black.withValues(alpha: 0.60),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildStreakBadge(streak, isDark),
+                ],
+              ),
             );
           },
         );
@@ -691,46 +838,74 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkGrey : AppTheme.white,
-        borderRadius: BorderRadius.circular(20),
+        color: isDark ? const Color(0xFF161616) : Colors.white,
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: isDark
-              ? Colors.cyan.withValues(alpha: 0.3)
-              : Colors.cyan.withValues(alpha: 0.5),
-          width: 1,
+              ? Colors.white.withValues(alpha: 0.10)
+              : Colors.black.withValues(alpha: 0.06),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: Colors.cyan.withValues(alpha: isDark ? 0.06 : 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.cyan.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, size: 24, color: Colors.cyan),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.cyan.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Colors.cyan.withValues(alpha: 0.18),
+                        ),
+                      ),
+                      child: Icon(icon, size: 22, color: Colors.cyan),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 14,
+                      color: isDark ? Colors.white38 : Colors.black38,
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 Text(
                   value,
                   style: const TextStyle(
-                      fontSize: 32, fontWeight: FontWeight.bold),
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 14,
-                    color: isDark ? Colors.grey[400] : Colors.grey[600],
-                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.60)
+                        : Colors.black.withValues(alpha: 0.60),
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -741,25 +916,17 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
     );
   }
 
-  Widget _buildQuickActionCard(
+  Widget _buildQuickActionTile(
     BuildContext context,
-    bool isDark,
-    String title,
-    String subtitle,
-    IconData icon,
-    String? route,
-  ) {
+    bool isDark, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required String? route,
+    required Color accent,
+  }) {
     return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkGrey : AppTheme.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark
-              ? Colors.cyan.withValues(alpha: 0.3)
-              : Colors.cyan.withValues(alpha: 0.5),
-          width: 1,
-        ),
-      ),
+      decoration: _premiumCardDecoration(isDark, accent: accent, radius: 20),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -769,48 +936,65 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
               Navigator.pushNamed(context, AppRoutes.login);
               return;
             }
-
             if (route != null) {
               Navigator.pushNamed(context, route);
             }
           },
           borderRadius: BorderRadius.circular(20),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.cyan.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      colors: [
+                        accent.withValues(alpha: 0.30),
+                        accent.withValues(alpha: 0.12),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: accent.withValues(alpha: 0.22)),
                   ),
-                  child: Icon(icon, size: 24, color: Colors.cyan),
+                  child: Icon(icon, color: accent, size: 22),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         title,
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
                         subtitle,
                         style: TextStyle(
+                          fontSize: 12,
                           color: isDark ? Colors.grey[400] : Colors.grey[600],
-                          fontSize: 13,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios, size: 18),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 14,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                ),
               ],
             ),
           ),
@@ -876,13 +1060,11 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Mood Analytics',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.cyan,
-            ),
+          _sectionHeader(
+            isDark,
+            title: 'Mood Analytics',
+            icon: Icons.bar_chart,
+            caption: 'Your last 7 days mood trend',
           ),
           const SizedBox(height: 16),
           Container(

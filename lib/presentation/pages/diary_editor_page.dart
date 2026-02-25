@@ -10,6 +10,7 @@ import 'package:flutter_quill/flutter_quill.dart';
 import '../../domain/entities/diary_entry.dart';
 import '../bloc/diary_bloc.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/util/json_utils.dart';
 
 class DiaryEditorPage extends StatefulWidget {
   final DiaryEntry? entry;
@@ -25,6 +26,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
   late final QuillController _quillController;
   final _focusNode = FocusNode();
   final _scrollController = ScrollController();
+  bool _isToolbarExpanded = false;
   DateTime _selectedDate = DateTime.now();
   String? _selectedMood;
   List<String> _attachedImages = [];
@@ -45,6 +47,9 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
   void initState() {
     super.initState();
     _initQuillController();
+    _focusNode.addListener(() {
+      if (mounted) setState(() {});
+    });
     if (widget.entry != null) {
       _titleController.text = widget.entry!.title;
       _selectedMood = widget.entry!.mood;
@@ -55,33 +60,40 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
   }
 
   void _initQuillController() {
-    if (widget.entry != null && widget.entry!.content.isNotEmpty) {
-      try {
+    try {
+      if (widget.entry != null && widget.entry!.content.isNotEmpty) {
         final content = widget.entry!.content;
+        // Check if content is valid JSON for Quill
         if (content.trim().startsWith('[') || content.trim().startsWith('{')) {
-          final doc = Document.fromJson(jsonDecode(content));
-          _quillController = QuillController(
-            document: doc,
-            selection: const TextSelection.collapsed(offset: 0),
-          );
-        } else {
-          // Plain text fallback
-          final doc = Document()..insert(0, content);
-          _quillController = QuillController(
-            document: doc,
-            selection: const TextSelection.collapsed(offset: 0),
-          );
+          final decoded = JsonUtils.safeDecode(content);
+          final ops = JsonUtils.getOps(decoded);
+
+          if (ops != null) {
+            final doc = Document.fromJson(ops);
+            _quillController = QuillController(
+              document: doc,
+              selection: const TextSelection.collapsed(offset: 0),
+            );
+            return;
+          }
         }
-      } catch (e) {
-        debugPrint('Error parsing quill content: $e');
-        final doc = Document()..insert(0, widget.entry!.content);
+
+        // Fallback for plain text or unexpected format
+        final doc = Document()..insert(0, content);
         _quillController = QuillController(
           document: doc,
           selection: const TextSelection.collapsed(offset: 0),
         );
+      } else {
+        _quillController = QuillController.basic();
       }
-    } else {
+    } catch (e) {
+      debugPrint('Error parsing quill content: $e');
+      // Final fallback to ensure controller is never uninitialized
       _quillController = QuillController.basic();
+      if (widget.entry != null && widget.entry!.content.isNotEmpty) {
+        _quillController.document.insert(0, widget.entry!.content);
+      }
     }
   }
 
@@ -134,7 +146,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.entry == null ? 'New Entry' : 'Edit Entry',
+          'Write Entry',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         elevation: 0,
@@ -145,14 +157,13 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
             tooltip: 'Writing Prompts',
             onPressed: () => _showWritingPrompts(isDark),
           ),
-          // Templates button (only for new entries)
-          if (widget.entry == null)
-            IconButton(
-              icon: const Icon(Icons.dashboard_customize_outlined,
-                  color: Colors.cyan),
-              tooltip: 'Entry Templates',
-              onPressed: () => _showTemplates(isDark),
-            ),
+          // Templates button (available for both new + edit)
+          IconButton(
+            icon:
+                const Icon(Icons.dashboard_customize_outlined, color: Colors.cyan),
+            tooltip: 'Entry Templates',
+            onPressed: () => _showTemplates(isDark),
+          ),
           Container(
             margin: const EdgeInsets.only(right: 8),
             child: FilledButton.icon(
@@ -172,37 +183,110 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDatePicker(isDark),
-            const SizedBox(height: 24),
-            _buildTitleField(isDark),
-            const SizedBox(height: 24),
-            Text(
-              'Tags (Optional)',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: isDark ? AppTheme.white : AppTheme.black,
-              ),
+            _buildDetailsCard(isDark),
+            const SizedBox(height: 22),
+            _buildSectionLabel(
+              icon: Icons.edit_note,
+              title: 'Write your thoughts',
+              isDark: isDark,
             ),
-            const SizedBox(height: 12),
-            _buildTagInput(isDark),
-            const SizedBox(height: 24),
-            const Text(
-              'How are you feeling?',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            _buildMoodSelector(isDark),
-            const SizedBox(height: 24),
-            const Text(
-              'Write your thoughts',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             _buildContentField(isDark),
             const SizedBox(height: 20),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel({
+    required IconData icon,
+    required String title,
+    required bool isDark,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: Colors.cyan.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.cyan.withValues(alpha: 0.20)),
+          ),
+          child: Icon(icon, color: Colors.cyan, size: 20),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: isDark ? AppTheme.white : AppTheme.black,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailsCard(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF161616) : Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: isDark
+              ? AppTheme.white.withValues(alpha: 0.10)
+              : AppTheme.black.withValues(alpha: 0.08),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionLabel(
+            icon: Icons.tune,
+            title: 'Details',
+            isDark: isDark,
+          ),
+          const SizedBox(height: 14),
+          _buildDatePicker(isDark),
+          const SizedBox(height: 16),
+          _buildTitleField(isDark),
+          const SizedBox(height: 16),
+          Text(
+            'Tags',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: isDark
+                  ? AppTheme.white.withValues(alpha: 0.7)
+                  : AppTheme.black.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: 10),
+          _buildTagInput(isDark),
+          const SizedBox(height: 16),
+          Text(
+            'Mood',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: isDark
+                  ? AppTheme.white.withValues(alpha: 0.7)
+                  : AppTheme.black.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: 10),
+          _buildMoodSelector(isDark),
+        ],
       ),
     );
   }
@@ -542,7 +626,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
                       size: 14, color: Colors.grey),
                   onTap: () {
                     Navigator.pop(context);
-                    _applyTemplate(t);
+                    _applyTemplateFromUi(t);
                   },
                 );
               }),
@@ -551,6 +635,33 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
         );
       },
     );
+  }
+
+  Future<void> _applyTemplateFromUi(Map<String, dynamic> template) async {
+    if (widget.entry != null) {
+      final shouldReplace = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Apply template?'),
+          content: const Text(
+            'This will replace the current title and content of this entry.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Replace'),
+            ),
+          ],
+        ),
+      );
+      if (shouldReplace != true) return;
+    }
+
+    _applyTemplate(template);
   }
 
   void _applyTemplate(Map<String, dynamic> template) {
@@ -774,6 +885,96 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
   }
 
   Widget _buildContentField(bool isDark) {
+    final hasFocus = _focusNode.hasFocus;
+
+    final baseToolbarOptions = QuillSimpleToolbarButtonOptions(
+      base: QuillToolbarBaseButtonOptions(
+        iconSize: 16,
+        iconButtonFactor: 1.7,
+        iconTheme: QuillIconTheme(
+          iconButtonSelectedData: IconButtonData(
+            color: Colors.cyan,
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+            visualDensity: VisualDensity.compact,
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.resolveWith(
+                (states) => Colors.cyan.withValues(alpha: 0.20),
+              ),
+              foregroundColor: WidgetStateProperty.all(Colors.cyan),
+              overlayColor: WidgetStateProperty.all(Colors.transparent),
+              shadowColor: WidgetStateProperty.all(Colors.transparent),
+              surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
+              splashFactory: NoSplash.splashFactory,
+              shape: WidgetStateProperty.all(
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+          iconButtonUnselectedData: IconButtonData(
+            color: isDark ? Colors.white70 : Colors.black87,
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+            visualDensity: VisualDensity.compact,
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.all(Colors.transparent),
+              overlayColor: WidgetStateProperty.all(Colors.transparent),
+              splashFactory: NoSplash.splashFactory,
+              shadowColor: WidgetStateProperty.all(Colors.transparent),
+              surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
+            ),
+          ),
+        ),
+      ),
+      // Default is `Icons.color_lens` (a big filled circle) which is visually
+      // distracting on dark toolbars.
+      color: QuillToolbarColorButtonOptions(
+        iconData: Icons.palette_outlined,
+      ),
+      // Header dropdown ("Normal") needs more width than icon-only buttons.
+      selectHeaderStyleDropdownButton:
+          QuillToolbarSelectHeaderStyleDropdownButtonOptions(
+        iconTheme: QuillIconTheme(
+          iconButtonSelectedData: IconButtonData(
+            color: Colors.cyan,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            constraints: const BoxConstraints.tightFor(width: 110, height: 40),
+            visualDensity: VisualDensity.compact,
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.resolveWith(
+                (states) => Colors.cyan.withValues(alpha: 0.20),
+              ),
+              foregroundColor: WidgetStateProperty.all(Colors.cyan),
+              overlayColor: WidgetStateProperty.all(Colors.transparent),
+              shadowColor: WidgetStateProperty.all(Colors.transparent),
+              surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
+              splashFactory: NoSplash.splashFactory,
+              shape: WidgetStateProperty.all(
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
+          iconButtonUnselectedData: IconButtonData(
+            color: isDark ? Colors.white70 : Colors.black87,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            constraints: const BoxConstraints.tightFor(width: 110, height: 40),
+            visualDensity: VisualDensity.compact,
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.all(Colors.transparent),
+              overlayColor: WidgetStateProperty.all(Colors.transparent),
+              splashFactory: NoSplash.splashFactory,
+              shadowColor: WidgetStateProperty.all(Colors.transparent),
+              surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
+            ),
+          ),
+        ),
+      ),
+    );
+
     return Column(
       children: [
         // Quill Toolbar
@@ -787,69 +988,143 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
                   ? AppTheme.white.withValues(alpha: 0.1)
                   : AppTheme.black.withValues(alpha: 0.1),
             ),
+            boxShadow: isDark
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
           ),
-          child: QuillSimpleToolbar(
-            controller: _quillController,
-            config: QuillSimpleToolbarConfig(
-              showFontFamily: false,
-              showFontSize: false,
-              showBoldButton: true,
-              showItalicButton: true,
-              showUnderLineButton: true,
-              showStrikeThrough: false,
-              showColorButton: true,
-              showBackgroundColorButton: false,
-              showListNumbers: true,
-              showListBullets: true,
-              showListCheck: true,
-              showCodeBlock: false,
-              showQuote: true,
-              showIndent: false,
-              showLink: true,
-              showUndo: true,
-              showRedo: true,
-              showAlignmentButtons: false,
-              showSearchButton: false,
-              showSubscript: false,
-              showSuperscript: false,
-            ),
+          child: Stack(
+            children: [
+              Padding(
+                padding:
+                    EdgeInsets.fromLTRB(6, 6, 44, _isToolbarExpanded ? 6 : 6),
+                child: QuillSimpleToolbar(
+                  controller: _quillController,
+                  config: QuillSimpleToolbarConfig(
+                    // Collapsed: single-row toolbar (arrow-indicated list).
+                    // Expanded: multi-row full toolbar.
+                    multiRowsDisplay: _isToolbarExpanded,
+                    toolbarRunSpacing: _isToolbarExpanded ? 6 : 0,
+                    toolbarSectionSpacing: _isToolbarExpanded ? 4 : 2,
+                    buttonOptions: baseToolbarOptions,
+                    showFontFamily: false,
+                    showFontSize: false,
+                    showHeaderStyle: _isToolbarExpanded,
+                    showBoldButton: true,
+                    showItalicButton: true,
+                    showUnderLineButton: true,
+                    showStrikeThrough: false,
+                    showColorButton: _isToolbarExpanded,
+                    showBackgroundColorButton: false,
+                    showListNumbers: true,
+                    showListBullets: true,
+                    showListCheck: true,
+                    showCodeBlock: false,
+                    showQuote: _isToolbarExpanded,
+                    showIndent: false,
+                    showLink: true,
+                    showUndo: true,
+                    showRedo: true,
+                    showAlignmentButtons: false,
+                    showSearchButton: false,
+                    showSubscript: false,
+                    showSuperscript: false,
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 6,
+                top: 6,
+                child: IconButton(
+                  tooltip:
+                      _isToolbarExpanded ? 'Collapse toolbar' : 'Expand toolbar',
+                  onPressed: () {
+                    setState(() => _isToolbarExpanded = !_isToolbarExpanded);
+                  },
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.all(
+                      Colors.black.withValues(alpha: 0.12),
+                    ),
+                    overlayColor: WidgetStateProperty.all(Colors.transparent),
+                    splashFactory: NoSplash.splashFactory,
+                    shape: WidgetStateProperty.all(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  icon: Icon(
+                    _isToolbarExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: isDark ? Colors.white70 : Colors.black87,
+                    size: 18,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-        Container(
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
           constraints: const BoxConstraints(
-            minHeight: 200,
+            minHeight: 60, // Small starting height (approx 1-2 lines)
             maxHeight: 400,
           ),
           decoration: BoxDecoration(
             color: isDark
-                ? AppTheme.darkGrey
+                ? const Color(0xFF161616)
                 : AppTheme.black.withValues(alpha: 0.02),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isDark
-                  ? AppTheme.white.withValues(alpha: 0.1)
-                  : AppTheme.black.withValues(alpha: 0.1),
+              color: hasFocus
+                  ? Colors.cyan.withValues(alpha: isDark ? 0.45 : 0.35)
+                  : (isDark
+                      ? AppTheme.white.withValues(alpha: 0.10)
+                      : AppTheme.black.withValues(alpha: 0.10)),
+              width: hasFocus ? 1.5 : 1,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.08),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
+              ),
+              if (hasFocus)
+                BoxShadow(
+                  color: Colors.cyan.withValues(alpha: isDark ? 0.10 : 0.12),
+                  blurRadius: 22,
+                  offset: const Offset(0, 10),
+                ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Rich Editor
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: QuillEditor.basic(
-                    controller: _quillController,
-                    focusNode: _focusNode,
-                    scrollController: _scrollController,
-                    config: QuillEditorConfig(
-                      placeholder: 'Dear Diary,\n\nToday was...',
-                      expands: false,
-                      padding: EdgeInsets.zero,
-                      autoFocus: false,
-                      scrollable: true,
-                    ),
+              // Rich Editor (Removed Expanded for dynamic height)
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: QuillEditor.basic(
+                  controller: _quillController,
+                  focusNode: _focusNode,
+                  scrollController: _scrollController,
+                  config: QuillEditorConfig(
+                    // flutter_quill (web) builds JSON from placeholder; keep it single-line.
+                    placeholder: 'Dear Diary… Today was…',
+                    expands: false,
+                    padding: EdgeInsets.zero,
+                    autoFocus: false,
+                    scrollable: true,
                   ),
                 ),
               ),
@@ -907,6 +1182,34 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
                                 color: isDark ? AppTheme.black : AppTheme.white,
                               ),
                             ),
+                            if (_attachedImages.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? Colors.black.withValues(alpha: 0.18)
+                                      : Colors.white.withValues(alpha: 0.20),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? Colors.black.withValues(alpha: 0.18)
+                                        : Colors.white.withValues(alpha: 0.24),
+                                  ),
+                                ),
+                                child: Text(
+                                  '${_attachedImages.length}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: isDark
+                                        ? AppTheme.black
+                                        : AppTheme.white,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),

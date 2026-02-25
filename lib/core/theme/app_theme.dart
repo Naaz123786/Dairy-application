@@ -16,7 +16,6 @@ class AppTheme {
       id: 'classic',
       name: 'Classic Pack',
       icon: Icons.dashboard_customize,
-      animationPath: 'assets/animations/light.json',
       backgroundColor: const Color(0xFFE0E0E0),
       variants: [
         _createVariant('classic', 'classic_light', 'Classic Light',
@@ -126,7 +125,6 @@ class AppTheme {
       id: 'anime',
       name: 'Anime Vibe',
       icon: Icons.bolt,
-      animationPath: 'assets/animations/anime.json',
       backgroundColor: const Color(0xFF004D40),
       variants: [
         _createVariant(
@@ -225,7 +223,6 @@ class AppTheme {
       id: 'love',
       name: 'Love & Romance',
       icon: Icons.favorite,
-      animationPath: 'assets/animations/hearts.json',
       backgroundColor: const Color(0xFF880E4F),
       variants: [
         _createVariant(
@@ -324,7 +321,6 @@ class AppTheme {
       id: 'flower',
       name: 'Floral Garden',
       icon: Icons.local_florist,
-      animationPath: 'assets/animations/flowers.json',
       backgroundColor: const Color(0xFF1B5E20),
       variants: [
         _createVariant(
@@ -423,7 +419,6 @@ class AppTheme {
       id: 'firetail',
       name: 'Firetail',
       icon: Icons.whatshot,
-      animationPath: 'assets/animations/fire.json',
       backgroundColor: const Color(0xFF3E2723),
       variants: [
         _createVariant(
@@ -522,7 +517,6 @@ class AppTheme {
       id: 'heroism',
       name: 'Heroism',
       icon: Icons.shield,
-      animationPath: 'assets/animations/light.json',
       backgroundColor: const Color(0xFF455A64),
       variants: [
         _createVariant(

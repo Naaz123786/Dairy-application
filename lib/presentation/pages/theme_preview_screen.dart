@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 import '../../core/theme/theme_model.dart';
 import '../widgets/theme_gallery_sheet.dart';
 
@@ -15,19 +14,13 @@ class ThemePreviewScreen extends StatelessWidget {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Lottie Animation
-          Lottie.asset(
-            category.animationPath,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Center(
-                child: Icon(
-                  category.icon,
-                  size: 100,
-                  color: Colors.white.withValues(alpha: 0.2),
-                ),
-              );
-            },
+          // Large Background Icon
+          Center(
+            child: Icon(
+              category.icon,
+              size: 200,
+              color: Colors.white.withValues(alpha: 0.05),
+            ),
           ),
 
           // Overlay Gradient

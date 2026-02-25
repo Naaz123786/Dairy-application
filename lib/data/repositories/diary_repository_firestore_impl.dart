@@ -73,8 +73,10 @@ class DiaryRepositoryFirestoreImpl implements DiaryRepository {
   Future<List<DiaryEntry>> searchEntries(String query) async {
     final allEntries = await getEntries();
     return allEntries.where((e) {
-      return e.title.toLowerCase().contains(query.toLowerCase()) ||
-          e.content.toLowerCase().contains(query.toLowerCase());
+      final queryLower = query.toLowerCase();
+      return e.title.toLowerCase().contains(queryLower) ||
+          e.content.toLowerCase().contains(queryLower) ||
+          e.tags.any((tag) => tag.toLowerCase().contains(queryLower));
     }).toList();
   }
 

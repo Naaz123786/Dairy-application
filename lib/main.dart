@@ -15,6 +15,8 @@ import 'firebase_options.dart';
 import 'data/datasources/local_database.dart';
 import 'presentation/widgets/theme_background.dart';
 import 'core/services/notification_service.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 
 void main() {
   runZonedGuarded(() async {
@@ -79,6 +81,16 @@ class MyApp extends StatelessWidget {
             theme: themeData,
             onGenerateRoute: AppRoutes.onGenerateRoute,
             initialRoute: initialRoute,
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+              FlutterQuillLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('en', 'US'),
+              Locale('hi', 'IN'),
+            ],
             builder: (context, child) {
               return ThemeBackground(child: child!);
             },

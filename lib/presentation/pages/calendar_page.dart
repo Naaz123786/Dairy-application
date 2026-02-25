@@ -29,6 +29,34 @@ class _CalendarViewState extends State<CalendarView> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
+  BoxDecoration _premiumCardDecoration(
+    bool isDark, {
+    Color accent = Colors.cyan,
+    double radius = 24,
+  }) {
+    return BoxDecoration(
+      color: isDark ? const Color(0xFF161616) : Colors.white,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.10)
+            : Colors.black.withValues(alpha: 0.06),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.08),
+          blurRadius: 18,
+          offset: const Offset(0, 10),
+        ),
+        BoxShadow(
+          color: accent.withValues(alpha: isDark ? 0.06 : 0.05),
+          blurRadius: 18,
+          offset: const Offset(0, 10),
+        ),
+      ],
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -58,13 +86,7 @@ class _CalendarViewState extends State<CalendarView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Reminders & Birthdays',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.cyan,
-          ),
-        ),
+        title: const Text('Calendar'),
         actions: const [],
         elevation: 0,
       ),
@@ -99,16 +121,7 @@ class _CalendarViewState extends State<CalendarView> {
             children: [
               Container(
                 margin: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDark ? AppTheme.darkGrey : AppTheme.white,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.cyan.withValues(alpha: 0.3)
-                        : Colors.cyan.withValues(alpha: 0.5),
-                    width: 1,
-                  ),
-                ),
+                decoration: _premiumCardDecoration(isDark, radius: 24),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(24),
                   child: TableCalendar<Reminder>(
@@ -149,7 +162,7 @@ class _CalendarViewState extends State<CalendarView> {
                         color: isDark ? Colors.grey[400] : Colors.grey[600],
                       ),
                     ),
-                    headerStyle: const HeaderStyle(
+                    headerStyle: HeaderStyle(
                       formatButtonVisible: false,
                       titleCentered: true,
                       titleTextStyle: TextStyle(
@@ -164,14 +177,39 @@ class _CalendarViewState extends State<CalendarView> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    const Icon(Icons.event, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      DateFormat.yMMMMd().format(_selectedDay!),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: Colors.cyan.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.cyan.withValues(alpha: 0.20),
+                        ),
                       ),
+                      child:
+                          const Icon(Icons.event, size: 18, color: Colors.cyan),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          DateFormat('EEEE, d MMMM').format(_selectedDay!),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Events & birthdays',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color:
+                                isDark ? Colors.grey[400] : Colors.grey[600],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -215,6 +253,28 @@ class _CalendarViewState extends State<CalendarView> {
                   'Tap + to add a birthday or reminder',
                   style: TextStyle(color: Colors.grey[600]),
                 ),
+                const SizedBox(height: 18),
+                FilledButton.icon(
+                  onPressed: () {
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user == null) {
+                      Navigator.pushNamed(context, AppRoutes.login);
+                      return;
+                    }
+                    _showReminderDialog(context);
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add event'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.cyan,
+                    foregroundColor: Colors.white,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -243,18 +303,10 @@ class _CalendarViewState extends State<CalendarView> {
         reminder.recurrenceType == 'Yearly' ||
         reminder.title.toLowerCase().contains('birthday');
 
+    final accent = isBirthday ? Colors.cyan : Colors.purple;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkGrey : AppTheme.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark
-              ? Colors.cyan.withValues(alpha: 0.3)
-              : Colors.cyan.withValues(alpha: 0.5),
-          width: 1,
-        ),
-      ),
+      decoration: _premiumCardDecoration(isDark, accent: accent, radius: 22),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -271,17 +323,24 @@ class _CalendarViewState extends State<CalendarView> {
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  width: 46,
+                  height: 46,
                   decoration: BoxDecoration(
-                    color: isDark ? AppTheme.white : AppTheme.black,
-                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        accent.withValues(alpha: 0.30),
+                        accent.withValues(alpha: 0.12),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: accent.withValues(alpha: 0.22)),
                   ),
                   child: Icon(
                     isBirthday ? Icons.cake : Icons.event,
-                    color: isBirthday
-                        ? Colors.cyan
-                        : (isDark ? AppTheme.black : AppTheme.white),
-                    size: 28,
+                    color: accent,
+                    size: 22,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -292,9 +351,11 @@ class _CalendarViewState extends State<CalendarView> {
                       Text(
                         reminder.title,
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -302,16 +363,21 @@ class _CalendarViewState extends State<CalendarView> {
                             ? '🎂 Birthday'
                             : DateFormat.jm().format(reminder.scheduledTime),
                         style: TextStyle(
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
-                          fontSize: 14,
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.60)
+                              : Colors.black.withValues(alpha: 0.60),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined, color: Colors.blue),
-                  onPressed: () {
+                _buildActionChip(
+                  icon: Icons.edit_outlined,
+                  label: 'Edit',
+                  color: Colors.blue,
+                  onTap: () {
                     if (FirebaseAuth.instance.currentUser == null) {
                       Navigator.pushNamed(context, AppRoutes.login);
                       return;
@@ -319,9 +385,12 @@ class _CalendarViewState extends State<CalendarView> {
                     _showReminderDialog(context, reminder: reminder);
                   },
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  onPressed: () {
+                const SizedBox(width: 10),
+                _buildActionChip(
+                  icon: Icons.delete_outline,
+                  label: 'Delete',
+                  color: Colors.red,
+                  onTap: () {
                     if (FirebaseAuth.instance.currentUser == null) {
                       Navigator.pushNamed(context, AppRoutes.login);
                       return;
@@ -334,6 +403,41 @@ class _CalendarViewState extends State<CalendarView> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.22)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ],
         ),
       ),
     );

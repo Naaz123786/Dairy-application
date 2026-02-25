@@ -27,7 +27,6 @@ class AppThemeCategory {
   final String id;
   final String name;
   final IconData icon;
-  final String animationPath;
   final Color backgroundColor;
   final List<AppThemeVariant> variants;
 
@@ -35,7 +34,6 @@ class AppThemeCategory {
     required this.id,
     required this.name,
     required this.icon,
-    required this.animationPath,
     required this.backgroundColor,
     required this.variants,
   });

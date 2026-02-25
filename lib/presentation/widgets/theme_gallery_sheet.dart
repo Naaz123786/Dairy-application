@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:lottie/lottie.dart';
 import '../bloc/theme_cubit.dart';
 import 'package:diary_app/core/theme/app_theme.dart';
 import 'package:diary_app/core/theme/theme_model.dart';
@@ -114,23 +113,20 @@ class _ThemeGallerySheetState extends State<ThemeGallerySheet> {
                   clipBehavior: Clip.antiAlias,
                   child: Stack(
                     children: [
-                      // Animation Background
+                      // Icon Background
                       Positioned.fill(
-                        child: Lottie.asset(
-                          pack.animationPath,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Center(
-                              child: Icon(pack.icon,
-                                  size: 40, color: Colors.white24),
-                            );
-                          },
+                        child: Center(
+                          child: Icon(
+                            pack.icon,
+                            size: 80,
+                            color: Colors.white.withValues(alpha: 0.1),
+                          ),
                         ),
                       ),
                       // Overlay
                       Positioned.fill(
                         child: Container(
-                          color: Colors.black.withValues(alpha: 0.3),
+                          color: Colors.black.withValues(alpha: 0.1),
                         ),
                       ),
                       // Content
