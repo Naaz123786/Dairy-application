@@ -35,9 +35,10 @@ void main() {
 
     final localDb = di.sl<LocalDatabase>();
 
-    // Initialize notification service
+    // Initialize notification service (and timezone for scheduled notifications)
     final notificationService = NotificationService();
     await notificationService.init();
+    await notificationService.requestPermissions();
 
     // Reschedule daily reminder if enabled
     if (localDb.isDailyReminderEnabled()) {
@@ -76,7 +77,7 @@ class MyApp extends StatelessWidget {
         builder: (context, themeKey) {
           final themeData = AppTheme.getTheme(themeKey);
           return MaterialApp(
-            title: 'Personal Diary',
+            title: 'My Diary',
             debugShowCheckedModeBanner: false,
             theme: themeData,
             onGenerateRoute: AppRoutes.onGenerateRoute,

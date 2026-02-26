@@ -36,13 +36,23 @@ class ReminderRepositoryImpl implements ReminderRepository {
     final now = DateTime.now();
     final List<String> toDelete = [];
 
-    // Auto-cleanup: remove non-recurring reminders older than 24 hours
     for (var key in localDatabase.remindersBox.keys) {
       final model = localDatabase.remindersBox.get(key);
-      if (model != null && !model.isRecurring) {
-        if (now.difference(model.scheduledTime).inHours >= 24) {
-          toDelete.add(model.id);
-        }
+      if (model == null) continue;
+
+      final isPastBy24h = now.difference(model.scheduledTime).inHours >= 24;
+
+      // Non-recurring reminders (routine, etc.): remove 24 hours after scheduled time
+      if (!model.isRecurring && isPastBy24h) {
+        toDelete.add(model.id);
+        continue;
+      }
+
+      // Birthday that does NOT repeat every year: remove 24 hours after birthday date
+      final isNonYearlyBirthday = model.category == 'birthday' &&
+          (!model.isRecurring || model.recurrenceType != 'Yearly');
+      if (isNonYearlyBirthday && isPastBy24h) {
+        toDelete.add(model.id);
       }
     }
 
@@ -71,24 +81,20 @@ class ReminderRepositoryImpl implements ReminderRepository {
       }
     }
 
-    // Schedule Notification
-    // We use hashcode of ID for notification ID (simple approach) or random int
+    // Schedule Notification at exact time/date
     final notificationId = reminder.id.hashCode;
 
     if (reminder.category == 'routine') {
-      await notificationService.scheduleNotification(
+      await notificationService.scheduleRoutineDaily(
         id: notificationId,
         title: 'Routine: ${reminder.title}',
         body: 'Time for your task!',
-        scheduledDate: reminder.scheduledTime,
+        hour: reminder.scheduledTime.hour,
+        minute: reminder.scheduledTime.minute,
       );
     } else if (reminder.category == 'exam') {
-      await notificationService.scheduleNotification(
-        id: notificationId,
-        title: 'Exam Alert: ${reminder.title}',
-        body: 'Your exam is coming up!',
-        scheduledDate: reminder.scheduledTime,
-      );
+      await notificationService.cancelExamCountdownReminders(reminder.id);
+      await notificationService.scheduleExamCountdownReminders(reminder);
     } else if (reminder.category == 'birthday') {
       await notificationService.scheduleBirthdayNotification(
         id: notificationId,
@@ -96,12 +102,20 @@ class ReminderRepositoryImpl implements ReminderRepository {
         birthdayDate: reminder.scheduledTime,
         isYearly: reminder.isRecurring,
       );
+    } else if (reminder.category == 'calendar' || reminder.category.isEmpty) {
+      // Calendar / general reminders: notification at exact set time & date
+      await notificationService.scheduleAtTime(
+        id: notificationId,
+        title: 'Reminder: ${reminder.title}',
+        body: 'Time for your reminder!',
+        scheduledTime: reminder.scheduledTime,
+      );
     } else {
-      await notificationService.scheduleNotification(
+      await notificationService.scheduleAtTime(
         id: notificationId,
         title: 'Reminder: ${reminder.title}',
         body: 'You have a reminder now!',
-        scheduledDate: reminder.scheduledTime,
+        scheduledTime: reminder.scheduledTime,
       );
     }
   }
@@ -114,12 +128,21 @@ class ReminderRepositoryImpl implements ReminderRepository {
 
   @override
   Future<void> deleteReminder(String id) async {
+    try {
+      await notificationService.cancelExamCountdownReminders(id);
+    } catch (_) {}
+    try {
+      await notificationService.cancelBirthdayNotifications(id.hashCode);
+    } catch (_) {}
+    try {
+      await notificationService.cancelNotification(id.hashCode);
+    } catch (_) {}
     await localDatabase.remindersBox.delete(id);
     if (FirebaseAuth.instance.currentUser != null) {
       try {
         await firestoreDatabase.deleteReminder(id);
       } catch (e) {
-        // Handle sync error
+        debugPrint('Firestore deleteReminder error: $e');
       }
     }
   }

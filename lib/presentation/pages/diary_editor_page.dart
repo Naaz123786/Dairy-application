@@ -757,37 +757,38 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
   Widget _buildDatePicker(bool isDark) {
     return InkWell(
       onTap: _pickDate,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: isDark ? AppTheme.darkGrey : AppTheme.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isDark
                 ? AppTheme.white.withValues(alpha: 0.5)
                 : AppTheme.black.withValues(alpha: 0.5),
-            width: 2,
+            width: 1,
           ),
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: isDark ? AppTheme.white : AppTheme.black,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 Icons.calendar_today,
                 color: isDark ? AppTheme.black : AppTheme.white,
-                size: 24,
+                size: 18,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     'Date',
@@ -795,21 +796,21 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
                       color: isDark
                           ? AppTheme.white.withValues(alpha: 0.5)
                           : AppTheme.black.withValues(alpha: 0.5),
-                      fontSize: 12,
+                      fontSize: 11,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     DateFormat('EEEE, d MMMM y').format(_selectedDate),
                     style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_drop_down),
+            const Icon(Icons.arrow_drop_down, size: 22),
           ],
         ),
       ),

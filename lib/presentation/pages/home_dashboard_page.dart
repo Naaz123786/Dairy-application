@@ -124,7 +124,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home'),
-        centerTitle: false,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -133,7 +133,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildGreeting(isDark),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             _buildAffirmationCard(isDark),
             const SizedBox(height: 24),
             _buildOnThisDaySection(isDark),
@@ -370,8 +370,6 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
           birthdays = state.reminders
               .where((r) =>
                   r.category == 'birthday' ||
-                  r.recurrenceType == 'Yearly' ||
-                  r.isRecurring ||
                   r.title.toLowerCase().contains('birthday'))
               .toList()
             ..sort((a, b) {
@@ -476,8 +474,6 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                   .where(
                     (r) =>
                         r.category == 'birthday' ||
-                        r.recurrenceType == 'Yearly' ||
-                        r.isRecurring ||
                         r.title.toLowerCase().contains('birthday'),
                   )
                   .length;
@@ -578,7 +574,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
             }
 
             return Container(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: isDark
@@ -593,7 +589,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(26),
+                borderRadius: BorderRadius.circular(22),
                 border: Border.all(
                   color: Colors.cyan.withValues(alpha: isDark ? 0.22 : 0.18),
                 ),
@@ -611,23 +607,33 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ShaderMask(
-                          shaderCallback: (bounds) => const LinearGradient(
-                            colors: [Colors.cyan, Colors.lightBlueAccent],
-                          ).createShader(bounds),
-                          child: Text(
-                            '$greeting, $name',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: -0.5,
-                              color: Colors.white,
+                        Row(
+                          children: [
+                            Flexible(
+                              child: ShaderMask(
+                                shaderCallback: (bounds) =>
+                                    const LinearGradient(
+                                  colors: [
+                                    Colors.cyan,
+                                    Colors.lightBlueAccent,
+                                  ],
+                                ).createShader(bounds),
+                                child: Text(
+                                  '$greeting, $name',
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: -0.3,
+                                    color: Colors.white,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          ],
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 4),
                         Text(
                           DateFormat('EEEE, d MMMM y').format(DateTime.now()),
                           style: TextStyle(
@@ -636,7 +642,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                                 isDark ? Colors.white70 : Colors.grey.shade700,
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 4),
                         Text(
                           streak > 0
                               ? 'Keep your streak alive today'
@@ -764,10 +770,10 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       decoration: BoxDecoration(
         color: isDark ? AppTheme.darkGrey : AppTheme.white,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: Colors.cyan.withValues(alpha: 0.2),
           width: 1.5,
@@ -802,19 +808,19 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                   color: Colors.cyan.withValues(alpha: 0.5), size: 18),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           Text(
             randomAffirmation,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.w400,
               fontStyle: FontStyle.italic,
               height: 1.5,
               letterSpacing: -0.2,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           Container(
             height: 3,
             width: 40,

@@ -303,12 +303,25 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     setState(() => _isLoading = true);
+    final email = _emailController.text.trim().toLowerCase();
+    final password = _passwordController.text
+        .trim()
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
     try {
       if (_isSignUp) {
+        if (password.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Please enter a password')),
+            );
+            return;
+          }
+        }
         final userCredential =
             await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
+          email: email,
+          password: password,
         );
 
         if (userCredential.user != null && _nameController.text.isNotEmpty) {
@@ -317,9 +330,17 @@ class _LoginPageState extends State<LoginPage> {
           await userCredential.user!.reload();
         }
       } else {
+        if (password.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Please enter your password')),
+            );
+          }
+          return;
+        }
         await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
+          email: email,
+          password: password,
         );
       }
       if (!mounted) return;
@@ -343,8 +364,27 @@ class _LoginPageState extends State<LoginPage> {
       }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
+      String message = 'Authentication Failed';
+      switch (e.code) {
+        case 'wrong-password':
+        case 'invalid-credential':
+        case 'invalid-email':
+          message = 'Invalid email or password. Please check and try again.';
+          break;
+        case 'user-not-found':
+          message = 'No account found with this email. Sign up first.';
+          break;
+        case 'user-disabled':
+          message = 'This account has been disabled.';
+          break;
+        case 'too-many-requests':
+          message = 'Too many attempts. Try again later.';
+          break;
+        default:
+          message = e.message ?? message;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Authentication Failed')),
+        SnackBar(content: Text(message)),
       );
     } catch (e) {
       if (!mounted) return;

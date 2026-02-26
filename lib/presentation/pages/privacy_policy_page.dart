@@ -24,7 +24,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             _buildSection(
               title: 'Introduction',
               content:
-                  'Welcome to Personal Diary. Your privacy is our top priority. This app is designed to be a secure, private space for your thoughts and plans.',
+                  'Welcome to My Diary. Your privacy is our top priority. This app is designed to be a secure, private space for your thoughts and plans.',
               primaryColor: primaryColor,
             ),
             _buildSection(

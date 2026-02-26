@@ -10,6 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../data/datasources/local_database.dart';
 import '../../injection_container.dart' as di;
 import '../../core/services/pdf_service.dart';
+import '../../core/util/guest_limits.dart';
 
 class DiaryPage extends StatefulWidget {
   final bool isActive;
@@ -40,6 +41,46 @@ class _DiaryPageState extends State<DiaryPage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _openNewDiaryEntry(BuildContext context) {
+    if (FirebaseAuth.instance.currentUser != null) {
+      Navigator.pushNamed(context, AppRoutes.diaryEdit);
+      return;
+    }
+    final state = context.read<DiaryBloc>().state;
+    if (state is DiaryLoaded &&
+        state.entries.length >= GuestLimits.maxDiaryEntries) {
+      _showGuestLimitDialog(
+        context,
+        'You can add up to ${GuestLimits.maxDiaryEntries} diary entries as guest. Login to add more.',
+      );
+      return;
+    }
+    Navigator.pushNamed(context, AppRoutes.diaryEdit);
+  }
+
+  void _showGuestLimitDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Login to add more'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pushNamed(context, AppRoutes.login);
+            },
+            child: const Text('Login'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -126,14 +167,7 @@ class _DiaryPageState extends State<DiaryPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'diary_fab',
-        onPressed: () {
-          final user = FirebaseAuth.instance.currentUser;
-          if (user == null) {
-            Navigator.pushNamed(context, AppRoutes.login);
-            return;
-          }
-          Navigator.pushNamed(context, AppRoutes.diaryEdit);
-        },
+        onPressed: () => _openNewDiaryEntry(context),
         label: const Text('Write'),
         icon: const Icon(Icons.create),
       ),
@@ -539,14 +573,7 @@ class _DiaryPageState extends State<DiaryPage> {
                     ),
                     const SizedBox(height: 18),
                     FilledButton.icon(
-                      onPressed: () {
-                        final user = FirebaseAuth.instance.currentUser;
-                        if (user == null) {
-                          Navigator.pushNamed(context, AppRoutes.login);
-                          return;
-                        }
-                        Navigator.pushNamed(context, AppRoutes.diaryEdit);
-                      },
+                      onPressed: () => _openNewDiaryEntry(context),
                       icon: const Icon(Icons.create),
                       label: const Text('Write your first entry'),
                       style: FilledButton.styleFrom(
@@ -666,10 +693,6 @@ class _DiaryPageState extends State<DiaryPage> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            if (FirebaseAuth.instance.currentUser == null) {
-              Navigator.pushNamed(context, AppRoutes.login);
-              return;
-            }
             Navigator.pushNamed(context, AppRoutes.diaryEdit, arguments: entry);
           },
           borderRadius: BorderRadius.circular(20),
@@ -869,10 +892,6 @@ class _DiaryPageState extends State<DiaryPage> {
                       label: 'Edit',
                       color: Colors.blue,
                       onTap: () {
-                        if (FirebaseAuth.instance.currentUser == null) {
-                          Navigator.pushNamed(context, AppRoutes.login);
-                          return;
-                        }
                         Navigator.pushNamed(
                           context,
                           AppRoutes.diaryEdit,
@@ -892,13 +911,7 @@ class _DiaryPageState extends State<DiaryPage> {
                       icon: Icons.delete_outline,
                       label: 'Delete',
                       color: Colors.red,
-                      onTap: () {
-                        if (FirebaseAuth.instance.currentUser == null) {
-                          Navigator.pushNamed(context, AppRoutes.login);
-                          return;
-                        }
-                        _showDeleteDialog(context, entry);
-                      },
+                      onTap: () => _showDeleteDialog(context, entry),
                     ),
                   ],
                 ),

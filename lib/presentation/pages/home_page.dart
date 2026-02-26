@@ -43,7 +43,7 @@ class HomePage extends StatelessWidget {
           children: [
             _buildDashboardCard(
               context,
-              title: 'Personal Diary',
+              title: 'My Diary',
               icon: Icons.book,
               color: Colors.purple.shade100,
               onTap: () => _navigateToDiary(context),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/routes/app_routes.dart';
 import '../../injection_container.dart' as di;
@@ -534,13 +535,15 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
+  static const String _supportEmail = 'naaazz2003@gmail.com';
+
   void _showHelpSupport(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Help & Support'),
-        content: const Text(
-          'Need help? Contact our support team at support@minidiary.com or visit our knowledge base.',
+        content: Text(
+          'Having an issue? Email us for support at $_supportEmail',
         ),
         actions: [
           TextButton(
@@ -548,7 +551,7 @@ class ProfilePage extends StatelessWidget {
             child: const Text('Close'),
           ),
           TextButton(
-            onPressed: () {},
+            onPressed: () => _launchSupportEmail(context),
             child: const Text('Email Support'),
           ),
         ],
@@ -556,10 +559,40 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
+  Future<void> _launchSupportEmail(BuildContext context) async {
+    final uri = Uri(
+      scheme: 'mailto',
+      path: _supportEmail,
+      query: _encodeQueryParameters({
+        'subject': 'My Diary - Support Request',
+        'body': 'Describe your issue or question here...',
+      }),
+    );
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+      if (context.mounted) Navigator.pop(context);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open email app. Please send your email manually to: $_supportEmail'),
+          ),
+        );
+      }
+    }
+  }
+
+  String? _encodeQueryParameters(Map<String, String> params) {
+    return params.entries
+        .map((e) =>
+            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+  }
+
   void _showAboutApp(BuildContext context) {
     showAboutDialog(
       context: context,
-      applicationName: 'Personal Diary',
+      applicationName: 'My Diary',
       applicationVersion: '1.0.0',
       applicationIcon: const Icon(Icons.book, color: Colors.cyan, size: 40),
       children: [

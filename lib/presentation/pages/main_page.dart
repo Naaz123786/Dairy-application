@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../core/theme/app_theme.dart';
 import '../../data/datasources/local_database.dart';
 import 'lock_screen.dart';
 import '../bloc/diary_bloc.dart';
@@ -13,6 +12,8 @@ import 'diary_page.dart';
 import 'home_dashboard_page.dart';
 import 'profile_page.dart';
 import 'package:get_it/get_it.dart';
+import '../../domain/repositories/diary_repository.dart';
+import '../../domain/repositories/reminder_repository.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -54,9 +55,17 @@ class _MainPageState extends State<MainPage>
     }
 
     // Listen to auth changes to refresh the entire app state
-    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) async {
+      if (user != null) {
+        // After login: sync guest data (local) to Firestore so entries are restored
+        try {
+          await GetIt.I<DiaryRepository>().sync();
+          await GetIt.I<ReminderRepository>().sync();
+        } catch (e) {
+          debugPrint('Sync after login: $e');
+        }
+      }
       if (mounted) {
-        // Refresh BLoC data on login/logout
         context.read<DiaryBloc>().add(LoadDiaryEntries());
         context.read<ReminderBloc>().add(LoadReminders());
         setState(() {});
@@ -138,34 +147,42 @@ class _MainPageState extends State<MainPage>
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: isDark ? AppTheme.black : AppTheme.white,
+          color: isDark
+              ? const Color(0xFF0D0D0D)
+              : Colors.white,
           boxShadow: [
             BoxShadow(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.05)
-                  : Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.08),
+              blurRadius: 24,
+              offset: const Offset(0, -6),
+            ),
+            BoxShadow(
+              color: Colors.cyan.withValues(alpha: isDark ? 0.06 : 0.04),
               blurRadius: 20,
-              offset: const Offset(0, -5),
+              offset: const Offset(0, -2),
             ),
           ],
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           border: Border(
             top: BorderSide(
-              color: isDark ? Colors.grey[900]! : Colors.grey[200]!,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.black.withValues(alpha: 0.06),
               width: 1,
             ),
           ),
         ),
         child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           child: NavigationBar(
             selectedIndex: _currentIndex,
             onDestinationSelected: _onItemTapped,
             backgroundColor: Colors.transparent,
             elevation: 0,
-            height: 70,
+            height: 72,
             indicatorColor: Colors.transparent,
             labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            surfaceTintColor: Colors.transparent,
             destinations: [
               _buildNavDestination(
                 icon: Icons.calendar_view_day_outlined,
@@ -216,37 +233,49 @@ class _MainPageState extends State<MainPage>
     required int index,
     required bool isDark,
   }) {
-    final isSelected = _currentIndex == index;
-    final activeColor = isDark ? AppTheme.white : AppTheme.black;
-    final inactiveColor = Colors.grey;
+    final inactiveColor = isDark
+        ? Colors.white.withValues(alpha: 0.45)
+        : Colors.black.withValues(alpha: 0.45);
 
     return NavigationDestination(
       icon: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.all(8),
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected
-              ? activeColor.withValues(alpha: 0.1)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Icon(
           icon,
-          color: isSelected ? activeColor : inactiveColor,
+          color: inactiveColor,
           size: 24,
         ),
       ),
       selectedIcon: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: activeColor,
-          borderRadius: BorderRadius.circular(12),
+          gradient: LinearGradient(
+            colors: [
+              Colors.cyan,
+              Colors.cyan.shade700,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.cyan.withValues(alpha: 0.35),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Icon(
           selectedIcon,
-          color: isDark ? AppTheme.black : AppTheme.white,
-          size: 24,
+          color: Colors.white,
+          size: 22,
         ),
       ),
       label: label,

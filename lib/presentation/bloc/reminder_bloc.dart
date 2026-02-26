@@ -94,8 +94,16 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
     on<DeleteReminder>((event, emit) async {
       try {
         await repository.deleteReminder(event.id);
-        add(LoadReminders());
+        final currentState = state;
+        if (currentState is ReminderLoaded) {
+          final newList =
+              currentState.reminders.where((r) => r.id != event.id).toList();
+          emit(ReminderLoaded(newList));
+        } else {
+          add(LoadReminders());
+        }
       } catch (e) {
+        add(LoadReminders());
         emit(ReminderError('Failed to delete reminder'));
       }
     });

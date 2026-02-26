@@ -8,6 +8,7 @@ import '../../domain/entities/reminder.dart';
 import '../../core/theme/app_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/routes/app_routes.dart';
+import '../../core/util/guest_limits.dart';
 
 class CalendarPage extends StatelessWidget {
   const CalendarPage({super.key});
@@ -92,14 +93,7 @@ class _CalendarViewState extends State<CalendarView> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'calendar_fab',
-        onPressed: () {
-          final user = FirebaseAuth.instance.currentUser;
-          if (user == null) {
-            Navigator.pushNamed(context, AppRoutes.login);
-            return;
-          }
-          _showReminderDialog(context);
-        },
+        onPressed: () => _tryAddCalendarReminder(context),
         label: const Text('Add Birthday'),
         icon: const Icon(Icons.cake),
         backgroundColor: Colors.cyan,
@@ -255,14 +249,7 @@ class _CalendarViewState extends State<CalendarView> {
                 ),
                 const SizedBox(height: 18),
                 FilledButton.icon(
-                  onPressed: () {
-                    final user = FirebaseAuth.instance.currentUser;
-                    if (user == null) {
-                      Navigator.pushNamed(context, AppRoutes.login);
-                      return;
-                    }
-                    _showReminderDialog(context);
-                  },
+                  onPressed: () => _tryAddCalendarReminder(context),
                   icon: const Icon(Icons.add),
                   label: const Text('Add event'),
                   style: FilledButton.styleFrom(
@@ -310,13 +297,7 @@ class _CalendarViewState extends State<CalendarView> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {
-            if (FirebaseAuth.instance.currentUser == null) {
-              Navigator.pushNamed(context, AppRoutes.login);
-              return;
-            }
-            _showReminderDialog(context, reminder: reminder);
-          },
+          onTap: () => _showReminderDialog(context, reminder: reminder),
           borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -377,28 +358,16 @@ class _CalendarViewState extends State<CalendarView> {
                   icon: Icons.edit_outlined,
                   label: 'Edit',
                   color: Colors.blue,
-                  onTap: () {
-                    if (FirebaseAuth.instance.currentUser == null) {
-                      Navigator.pushNamed(context, AppRoutes.login);
-                      return;
-                    }
-                    _showReminderDialog(context, reminder: reminder);
-                  },
+                  onTap: () => _showReminderDialog(context, reminder: reminder),
                 ),
                 const SizedBox(width: 10),
                 _buildActionChip(
                   icon: Icons.delete_outline,
                   label: 'Delete',
                   color: Colors.red,
-                  onTap: () {
-                    if (FirebaseAuth.instance.currentUser == null) {
-                      Navigator.pushNamed(context, AppRoutes.login);
-                      return;
-                    }
-                    context.read<ReminderBloc>().add(
-                          DeleteReminder(reminder.id),
-                        );
-                  },
+                  onTap: () => context.read<ReminderBloc>().add(
+                        DeleteReminder(reminder.id),
+                      ),
                 ),
               ],
             ),
@@ -439,6 +408,52 @@ class _CalendarViewState extends State<CalendarView> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _tryAddCalendarReminder(BuildContext context) {
+    if (FirebaseAuth.instance.currentUser != null) {
+      _showReminderDialog(context);
+      return;
+    }
+    final state = context.read<ReminderBloc>().state;
+    if (state is ReminderLoaded) {
+      final birthdayCount =
+          state.reminders.where((r) => r.category == 'birthday').length;
+      final calendarCount =
+          state.reminders.where((r) => r.category == 'calendar').length;
+      if (birthdayCount >= GuestLimits.maxBirthdayEntries &&
+          calendarCount >= GuestLimits.maxCalendarEntries) {
+        _showGuestLimitDialog(
+          context,
+          'You can add up to ${GuestLimits.maxBirthdayEntries} birthdays and ${GuestLimits.maxCalendarEntries} reminders as guest. Login to add more.',
+        );
+        return;
+      }
+    }
+    _showReminderDialog(context);
+  }
+
+  void _showGuestLimitDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Login to add more'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pushNamed(context, AppRoutes.login);
+            },
+            child: const Text('Login'),
+          ),
+        ],
       ),
     );
   }
@@ -562,28 +577,60 @@ class _CalendarViewState extends State<CalendarView> {
                 ),
                 FilledButton(
                   onPressed: () {
-                    if (titleController.text.isNotEmpty) {
-                      final newReminder = Reminder(
-                        id: reminder?.id ?? const Uuid().v4(),
-                        title: titleController.text,
-                        scheduledTime: selectedDate,
-                        isRecurring: isBirthday && isYearlyRepeat,
-                        recurrenceType:
-                            (isBirthday && isYearlyRepeat) ? 'Yearly' : 'None',
-                        category: isBirthday ? 'birthday' : 'calendar',
-                      );
-
-                      if (reminder == null) {
-                        parentContext.read<ReminderBloc>().add(
-                              AddReminder(newReminder),
-                            );
-                      } else {
-                        parentContext.read<ReminderBloc>().add(
-                              UpdateReminder(newReminder),
-                            );
+                    if (titleController.text.isEmpty) return;
+                    if (reminder == null &&
+                        FirebaseAuth.instance.currentUser == null) {
+                      final state =
+                          parentContext.read<ReminderBloc>().state;
+                      if (state is ReminderLoaded) {
+                        final birthdayCount = state.reminders
+                            .where((r) => r.category == 'birthday')
+                            .length;
+                        final calendarCount = state.reminders
+                            .where((r) => r.category == 'calendar')
+                            .length;
+                        if (isBirthday &&
+                            birthdayCount >=
+                                GuestLimits.maxBirthdayEntries) {
+                          Navigator.pop(context);
+                          _showGuestLimitDialog(
+                            parentContext,
+                            'You can add up to ${GuestLimits.maxBirthdayEntries} birthdays as guest. Login to add more.',
+                          );
+                          return;
+                        }
+                        if (!isBirthday &&
+                            calendarCount >=
+                                GuestLimits.maxCalendarEntries) {
+                          Navigator.pop(context);
+                          _showGuestLimitDialog(
+                            parentContext,
+                            'You can add up to ${GuestLimits.maxCalendarEntries} reminders as guest. Login to add more.',
+                          );
+                          return;
+                        }
                       }
-                      Navigator.pop(context);
                     }
+                    final newReminder = Reminder(
+                      id: reminder?.id ?? const Uuid().v4(),
+                      title: titleController.text,
+                      scheduledTime: selectedDate,
+                      isRecurring: isBirthday && isYearlyRepeat,
+                      recurrenceType:
+                          (isBirthday && isYearlyRepeat) ? 'Yearly' : 'None',
+                      category: isBirthday ? 'birthday' : 'calendar',
+                    );
+
+                    if (reminder == null) {
+                      parentContext.read<ReminderBloc>().add(
+                            AddReminder(newReminder),
+                          );
+                    } else {
+                      parentContext.read<ReminderBloc>().add(
+                            UpdateReminder(newReminder),
+                          );
+                    }
+                    Navigator.pop(context);
                   },
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.cyan,

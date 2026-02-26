@@ -6,6 +6,7 @@ import '../bloc/reminder_bloc.dart';
 import '../../domain/entities/reminder.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/routes/app_routes.dart';
+import '../../core/util/guest_limits.dart';
 
 class PlannerPage extends StatelessWidget {
   const PlannerPage({super.key});
@@ -26,19 +27,28 @@ class PlannerView extends StatelessWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            onPressed: () => Navigator.maybePop(context),
+            style: IconButton.styleFrom(
+              minimumSize: const Size(48, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+          leadingWidth: 56,
           title: const Text('Planner'),
-          actions: const [
-            SizedBox(width: 8),
-          ],
+          centerTitle: true,
+          actions: const [SizedBox(width: 48)],
           elevation: 0,
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(64),
+            preferredSize: const Size.fromHeight(48),
             child: Container(
-              margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF161616) : Colors.white,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: isDark
                       ? Colors.white.withValues(alpha: 0.10)
@@ -47,8 +57,8 @@ class PlannerView extends StatelessWidget {
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.08),
-                    blurRadius: 18,
-                    offset: const Offset(0, 10),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
@@ -56,7 +66,7 @@ class PlannerView extends StatelessWidget {
                 indicatorSize: TabBarIndicatorSize.tab,
                 dividerColor: Colors.transparent,
                 indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(10),
                   gradient: LinearGradient(
                     colors: [
                       Colors.cyan.withValues(alpha: 0.95),
@@ -67,121 +77,104 @@ class PlannerView extends StatelessWidget {
                   ),
                 ),
                 labelColor: Colors.white,
-                unselectedLabelColor:
-                    isDark ? Colors.white70 : Colors.black87,
-                labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                unselectedLabelColor: isDark ? Colors.white70 : Colors.black87,
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+                labelPadding: const EdgeInsets.symmetric(vertical: 6),
+                indicatorPadding: const EdgeInsets.all(2),
                 tabs: const [
-                  Tab(icon: Icon(Icons.schedule), text: 'Routine'),
-                  Tab(icon: Icon(Icons.school), text: 'Exams'),
+                  Tab(
+                    height: 40,
+                    icon: Icon(Icons.schedule, size: 20),
+                    text: 'Routine',
+                  ),
+                  Tab(
+                    height: 40,
+                    icon: Icon(Icons.school, size: 20),
+                    text: 'Exams',
+                  ),
                 ],
               ),
             ),
           ),
         ),
-        body: const TabBarView(children: [RoutineTab(), ExamsTab()]),
+        body: TabBarView(
+          children: [
+            RoutineTab(
+            tryAddRoutine: _tryAddRoutine,
+            showRoutineDialog: _showRoutineDialog,
+          ),
+            ExamsTab(
+            tryAddExam: _tryAddExam,
+            showExamDialog: _showExamDialog,
+          ),
+          ],
+        ),
       ),
     );
   }
-}
 
-class RoutineTab extends StatelessWidget {
-  const RoutineTab({super.key});
+  void _tryAddRoutine(BuildContext context) {
+    if (FirebaseAuth.instance.currentUser != null) {
+      _showRoutineDialog(context);
+      return;
+    }
+    final state = context.read<ReminderBloc>().state;
+    if (state is ReminderLoaded) {
+      final count =
+          state.reminders.where((r) => r.category == 'routine').length;
+      if (count >= GuestLimits.maxRoutineEntries) {
+        _showGuestLimitDialog(
+          context,
+          'You can add up to ${GuestLimits.maxRoutineEntries} routines as guest. Login to add more.',
+        );
+        return;
+      }
+    }
+    _showRoutineDialog(context);
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        BlocBuilder<ReminderBloc, ReminderState>(
-          builder: (context, state) {
-            if (state is ReminderLoaded) {
-              final routines =
-                  state.reminders.where((r) => r.category == 'routine').toList()
-                    ..sort(
-                      (a, b) =>
-                          a.scheduledTime.hour.compareTo(b.scheduledTime.hour),
-                    );
+  void _tryAddExam(BuildContext context) {
+    if (FirebaseAuth.instance.currentUser != null) {
+      _showExamDialog(context);
+      return;
+    }
+    final state = context.read<ReminderBloc>().state;
+    if (state is ReminderLoaded) {
+      final count = state.reminders.where((r) => r.category == 'exam').length;
+      if (count >= GuestLimits.maxExamEntries) {
+        _showGuestLimitDialog(
+          context,
+          'You can add up to ${GuestLimits.maxExamEntries} exams as guest. Login to add more.',
+        );
+        return;
+      }
+    }
+    _showExamDialog(context);
+  }
 
-              if (routines.isEmpty) {
-                return _buildEmptyState(
-                  'No routines yet. Add your daily habits!',
-                  icon: Icons.schedule,
-                  actionLabel: 'Add Routine',
-                  onAction: () {
-                    final user = FirebaseAuth.instance.currentUser;
-                    if (user == null) {
-                      Navigator.pushNamed(context, AppRoutes.login);
-                      return;
-                    }
-                    _showRoutineDialog(context);
-                  },
-                );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.only(bottom: 80),
-                itemCount: routines.length,
-                itemBuilder: (context, index) {
-                  final routine = routines[index];
-                  return _buildGradientCard(
-                    context,
-                    title: routine.title,
-                    subtitle: DateFormat.jm().format(routine.scheduledTime),
-                    icon: Icons.access_time,
-                    onTap: () {
-                      if (FirebaseAuth.instance.currentUser == null) {
-                        Navigator.pushNamed(context, AppRoutes.login);
-                        return;
-                      }
-                      _showRoutineDialog(context, reminder: routine);
-                    },
-                    onDelete: () {
-                      if (FirebaseAuth.instance.currentUser == null) {
-                        Navigator.pushNamed(context, AppRoutes.login);
-                        return;
-                      }
-                      context.read<ReminderBloc>().add(
-                            DeleteReminder(routine.id),
-                          );
-                    },
-                    trailingActions: [
-                      _buildActionChip(
-                        icon: Icons.edit,
-                        label: 'Edit',
-                        color: Colors.blue,
-                        onTap: () {
-                          if (FirebaseAuth.instance.currentUser == null) {
-                            Navigator.pushNamed(context, AppRoutes.login);
-                            return;
-                          }
-                          _showRoutineDialog(context, reminder: routine);
-                        },
-                      ),
-                    ],
-                  );
-                },
-              );
-            }
-            return const Center(child: CircularProgressIndicator());
-          },
-        ),
-        Positioned(
-          bottom: 16,
-          right: 16,
-          child: FloatingActionButton.extended(
-            heroTag: 'planner_routine_fab',
-            onPressed: () {
-              final user = FirebaseAuth.instance.currentUser;
-              if (user == null) {
-                Navigator.pushNamed(context, AppRoutes.login);
-                return;
-              }
-              _showRoutineDialog(context);
-            },
-            label: const Text('Add Routine'),
-            icon: const Icon(Icons.add),
+  void _showGuestLimitDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Login to add more'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
           ),
-        ),
-      ],
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pushNamed(context, AppRoutes.login);
+            },
+            child: const Text('Login'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -230,7 +223,8 @@ class RoutineTab extends StatelessWidget {
                         border: OutlineInputBorder(),
                         suffixIcon: Icon(Icons.access_time),
                       ),
-                      child: Text(selectedTime.format(context)),
+                      child: Text(DateFormat.jm().format(DateTime(2000, 1, 1,
+                          selectedTime.hour, selectedTime.minute))),
                     ),
                   ),
                 ],
@@ -243,19 +237,16 @@ class RoutineTab extends StatelessWidget {
                 FilledButton(
                   onPressed: () {
                     if (titleController.text.isNotEmpty) {
-                      final now = DateTime.now();
-                      final dt = DateTime(
-                        now.year,
-                        now.month,
-                        now.day,
-                        selectedTime.hour,
-                        selectedTime.minute,
-                      );
-
                       final newReminder = Reminder(
                         id: reminder?.id ?? const Uuid().v4(),
                         title: titleController.text,
-                        scheduledTime: dt,
+                        scheduledTime: DateTime(
+                          DateTime.now().year,
+                          DateTime.now().month,
+                          DateTime.now().day,
+                          selectedTime.hour,
+                          selectedTime.minute,
+                        ),
                         category: 'routine',
                         isRecurring: true,
                         recurrenceType: 'Daily',
@@ -280,156 +271,6 @@ class RoutineTab extends StatelessWidget {
           },
         );
       },
-    );
-  }
-}
-
-class ExamsTab extends StatelessWidget {
-  const ExamsTab({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        BlocBuilder<ReminderBloc, ReminderState>(
-          builder: (context, state) {
-            if (state is ReminderLoaded) {
-              final exams =
-                  state.reminders.where((r) => r.category == 'exam').toList()
-                    ..sort(
-                      (a, b) => a.scheduledTime.compareTo(b.scheduledTime),
-                    );
-
-              if (exams.isEmpty) {
-                return _buildEmptyState(
-                  'No exams added. Good luck!',
-                  icon: Icons.school,
-                  actionLabel: 'Add Exam',
-                  onAction: () {
-                    final user = FirebaseAuth.instance.currentUser;
-                    if (user == null) {
-                      Navigator.pushNamed(context, AppRoutes.login);
-                      return;
-                    }
-                    _showExamDialog(context);
-                  },
-                );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.only(bottom: 80),
-                itemCount: exams.length,
-                itemBuilder: (context, index) {
-                  final exam = exams[index];
-                  final daysLeft =
-                      exam.scheduledTime.difference(DateTime.now()).inDays;
-                  final isUrgent = daysLeft < 7;
-                  final boxColor = isUrgent ? Colors.red : Colors.cyan;
-                  final isDark =
-                      Theme.of(context).brightness == Brightness.dark;
-                  final leadingColor = isDark ? Colors.white : Colors.black;
-
-                  return _buildGradientCard(
-                    context,
-                    title: exam.title,
-                    subtitle: DateFormat.yMMMd().format(exam.scheduledTime),
-                    customLeading: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: boxColor.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(Icons.school, color: boxColor, size: 20),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: boxColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                '$daysLeft',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: leadingColor,
-                                ),
-                              ),
-                              Text(
-                                'Days',
-                                style: TextStyle(
-                                  fontSize: 8,
-                                  color: leadingColor.withValues(alpha: 0.7),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    onTap: () {
-                      if (FirebaseAuth.instance.currentUser == null) {
-                        Navigator.pushNamed(context, AppRoutes.login);
-                        return;
-                      }
-                      _showExamDialog(context, reminder: exam);
-                    },
-                    onDelete: () {
-                      if (FirebaseAuth.instance.currentUser == null) {
-                        Navigator.pushNamed(context, AppRoutes.login);
-                        return;
-                      }
-                      context.read<ReminderBloc>().add(DeleteReminder(exam.id));
-                    },
-                    trailingActions: [
-                      _buildActionChip(
-                        icon: Icons.edit,
-                        label: 'Edit',
-                        color: Colors.blue,
-                        onTap: () {
-                          if (FirebaseAuth.instance.currentUser == null) {
-                            Navigator.pushNamed(context, AppRoutes.login);
-                            return;
-                          }
-                          _showExamDialog(context, reminder: exam);
-                        },
-                      ),
-                    ],
-                  );
-                },
-              );
-            }
-            return const SizedBox.shrink();
-          },
-        ),
-        Positioned(
-          bottom: 16,
-          right: 16,
-          child: FloatingActionButton.extended(
-            heroTag: 'planner_exam_fab',
-            onPressed: () {
-              final user = FirebaseAuth.instance.currentUser;
-              if (user == null) {
-                Navigator.pushNamed(context, AppRoutes.login);
-                return;
-              }
-              _showExamDialog(context);
-            },
-            label: const Text('Add Exam'),
-            icon: const Icon(Icons.add),
-          ),
-        ),
-      ],
     );
   }
 
@@ -516,6 +357,209 @@ class ExamsTab extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+class RoutineTab extends StatelessWidget {
+  const RoutineTab({
+    super.key,
+    required this.tryAddRoutine,
+    required this.showRoutineDialog,
+  });
+  final void Function(BuildContext context) tryAddRoutine;
+  final void Function(BuildContext context, {Reminder? reminder}) showRoutineDialog;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        BlocBuilder<ReminderBloc, ReminderState>(
+          builder: (context, state) {
+            if (state is ReminderLoaded) {
+              final routines =
+                  state.reminders.where((r) => r.category == 'routine').toList()
+                    ..sort(
+                      (a, b) =>
+                          a.scheduledTime.hour.compareTo(b.scheduledTime.hour),
+                    );
+
+              if (routines.isEmpty) {
+                return _buildEmptyState(
+                  'No routines yet. Add your daily habits!',
+                  icon: Icons.schedule,
+                  actionLabel: 'Add Routine',
+                  onAction: () => tryAddRoutine(context),
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.only(bottom: 80),
+                itemCount: routines.length,
+                itemBuilder: (context, index) {
+                  final routine = routines[index];
+                  return _buildGradientCard(
+                    context,
+                    title: routine.title,
+                    subtitle: DateFormat.jm().format(routine.scheduledTime),
+                    icon: Icons.access_time,
+                    onTap: () => showRoutineDialog(context, reminder: routine),
+                    onDelete: () => context.read<ReminderBloc>().add(
+                          DeleteReminder(routine.id),
+                        ),
+                    trailingActions: [
+                      _buildActionChip(
+                        icon: Icons.edit,
+                        label: 'Edit',
+                        color: Colors.blue,
+                        onTap: () =>
+                            showRoutineDialog(context, reminder: routine),
+                      ),
+                    ],
+                  );
+                },
+              );
+            }
+            return const Center(child: CircularProgressIndicator());
+          },
+        ),
+        Positioned(
+          bottom: 16,
+          right: 16,
+          child: FloatingActionButton.extended(
+            heroTag: 'planner_routine_fab',
+            onPressed: () => tryAddRoutine(context),
+            label: const Text('Add Routine'),
+            icon: const Icon(Icons.add),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class ExamsTab extends StatelessWidget {
+  const ExamsTab({
+    super.key,
+    required this.tryAddExam,
+    required this.showExamDialog,
+  });
+  final void Function(BuildContext context) tryAddExam;
+  final void Function(BuildContext context, {Reminder? reminder}) showExamDialog;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        BlocBuilder<ReminderBloc, ReminderState>(
+          builder: (context, state) {
+            if (state is ReminderLoaded) {
+              final exams =
+                  state.reminders.where((r) => r.category == 'exam').toList()
+                    ..sort(
+                      (a, b) => a.scheduledTime.compareTo(b.scheduledTime),
+                    );
+
+              if (exams.isEmpty) {
+                return _buildEmptyState(
+                  'No exams added. Good luck!',
+                  icon: Icons.school,
+                  actionLabel: 'Add Exam',
+                  onAction: () => tryAddExam(context),
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.only(bottom: 80),
+                itemCount: exams.length,
+                itemBuilder: (context, index) {
+                  final exam = exams[index];
+                  final daysLeft =
+                      exam.scheduledTime.difference(DateTime.now()).inDays;
+                  final isUrgent = daysLeft < 7;
+                  final boxColor = isUrgent ? Colors.red : Colors.cyan;
+                  final isDark =
+                      Theme.of(context).brightness == Brightness.dark;
+                  final leadingColor = isDark ? Colors.white : Colors.black;
+
+                  return _buildGradientCard(
+                    context,
+                    title: exam.title,
+                    subtitle: DateFormat.yMMMd().format(exam.scheduledTime),
+                    customLeading: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: boxColor.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.school, color: boxColor, size: 20),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: boxColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '$daysLeft',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: leadingColor,
+                                ),
+                              ),
+                              Text(
+                                'Days',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  color: leadingColor.withValues(alpha: 0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    onTap: () => showExamDialog(context, reminder: exam),
+                    onDelete: () =>
+                        context.read<ReminderBloc>().add(DeleteReminder(exam.id)),
+                    trailingActions: [
+                      _buildActionChip(
+                        icon: Icons.edit,
+                        label: 'Edit',
+                        color: Colors.blue,
+                        onTap: () =>
+                            showExamDialog(context, reminder: exam),
+                      ),
+                    ],
+                  );
+                },
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        ),
+        Positioned(
+          bottom: 16,
+          right: 16,
+          child: FloatingActionButton.extended(
+            heroTag: 'planner_exam_fab',
+            onPressed: () => tryAddExam(context),
+            label: const Text('Add Exam'),
+            icon: const Icon(Icons.add),
+          ),
+        ),
+      ],
     );
   }
 }

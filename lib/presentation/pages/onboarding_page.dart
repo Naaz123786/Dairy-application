@@ -109,18 +109,36 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Widget _buildTopBar(bool isDark, Color primaryColor) {
     final isLast = _currentPage == _contents.length - 1;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+      padding: const EdgeInsets.fromLTRB(8, 14, 20, 8),
       child: Row(
         children: [
-          Text(
-            'Diary',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.5,
-              color: primaryColor.withValues(alpha: 0.85),
+          AnimatedOpacity(
+            duration: const Duration(milliseconds: 200),
+            opacity: _currentPage == 0 ? 0.0 : 1.0,
+            child: IgnorePointer(
+              ignoring: _currentPage == 0,
+              child: IconButton(
+                onPressed: _onBack,
+                icon: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 18,
+                  color: primaryColor.withValues(alpha: 0.75),
+                ),
+              ),
             ),
           ),
+          if (_currentPage == 0) ...[
+            const SizedBox(width: 12),
+            Text(
+              'Diary',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+                color: primaryColor.withValues(alpha: 0.85),
+              ),
+            ),
+          ],
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -205,31 +223,35 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
 
     return SizedBox(
-      height: 56,
+      height: 48,
       child: Material(
         color: Colors.transparent,
         child: Ink(
           decoration: BoxDecoration(
             gradient: gradient,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.28),
+              width: 1.2,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.cyan.withValues(alpha: isDark ? 0.35 : 0.22),
-                blurRadius: 22,
-                offset: const Offset(0, 12),
+                color: Colors.cyan.withValues(alpha: isDark ? 0.4 : 0.28),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
               BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.10),
-                blurRadius: 22,
-                offset: const Offset(0, 12),
+                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
           child: InkWell(
             onTap: onPressed,
-            borderRadius: BorderRadius.circular(20),
-            splashColor: Colors.white.withValues(alpha: 0.16),
-            highlightColor: Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(24),
+            splashColor: Colors.white.withValues(alpha: 0.2),
+            highlightColor: Colors.white.withValues(alpha: 0.08),
             child: Center(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 250),
@@ -240,18 +262,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     Text(
                       label,
                       style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 2,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.5,
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 6),
                     Icon(
                       isLast
                           ? Icons.check_circle_rounded
                           : Icons.arrow_forward_rounded,
-                      size: 20,
+                      size: 18,
                       color: Colors.white,
                     ),
                   ],
@@ -412,47 +434,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     children: [
                       _buildIndicators(primaryColor),
                       const SizedBox(height: 18),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 200),
-                              opacity: _currentPage == 0 ? 0.0 : 1.0,
-                              child: IgnorePointer(
-                                ignoring: _currentPage == 0,
-                                child: OutlinedButton.icon(
-                                  onPressed: _onBack,
-                                  icon: const Icon(Icons.arrow_back),
-                                  label: const Text('Back'),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor:
-                                        primaryColor.withValues(alpha: 0.80),
-                                    side: BorderSide(
-                                      color: primaryColor.withValues(alpha: 0.15),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
+                      Center(
+                        child: SizedBox(
+                          width: 175,
+                          child: _buildPrimaryCtaButton(
+                            isDark: isDark,
+                            onPressed: _onNext,
+                            label: _currentPage == _contents.length - 1
+                                ? 'GET STARTED'
+                                : 'NEXT',
+                            isLast: _currentPage == _contents.length - 1,
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 2,
-                            child: _buildPrimaryCtaButton(
-                              isDark: isDark,
-                              onPressed: _onNext,
-                              label: _currentPage == _contents.length - 1
-                                  ? 'GET STARTED'
-                                  : 'NEXT',
-                              isLast: _currentPage == _contents.length - 1,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                       const SizedBox(height: 14),
                       GestureDetector(
