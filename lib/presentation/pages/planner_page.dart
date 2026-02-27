@@ -279,6 +279,12 @@ class PlannerView extends StatelessWidget {
     DateTime selectedDate = reminder != null
         ? reminder.scheduledTime
         : DateTime.now().add(const Duration(days: 1));
+    TimeOfDay selectedTime = reminder != null
+        ? TimeOfDay(
+            hour: reminder.scheduledTime.hour,
+            minute: reminder.scheduledTime.minute,
+          )
+        : TimeOfDay.now();
 
     showDialog(
       context: parentContext,
@@ -320,6 +326,36 @@ class PlannerView extends StatelessWidget {
                       child: Text(DateFormat.yMMMd().format(selectedDate)),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: selectedTime,
+                      );
+                      if (picked != null) {
+                        setState(() => selectedTime = picked);
+                      }
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Exam Time',
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.access_time),
+                      ),
+                      child: Text(
+                        DateFormat.jm().format(
+                          DateTime(
+                            selectedDate.year,
+                            selectedDate.month,
+                            selectedDate.day,
+                            selectedTime.hour,
+                            selectedTime.minute,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
               actions: [
@@ -330,10 +366,17 @@ class PlannerView extends StatelessWidget {
                 FilledButton(
                   onPressed: () {
                     if (titleController.text.isNotEmpty) {
+                      final scheduled = DateTime(
+                        selectedDate.year,
+                        selectedDate.month,
+                        selectedDate.day,
+                        selectedTime.hour,
+                        selectedTime.minute,
+                      );
                       final newReminder = Reminder(
                         id: reminder?.id ?? const Uuid().v4(),
                         title: titleController.text,
-                        scheduledTime: selectedDate,
+                        scheduledTime: scheduled,
                         category: 'exam',
                         isRecurring: false,
                       );

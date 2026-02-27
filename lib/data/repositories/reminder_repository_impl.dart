@@ -95,6 +95,12 @@ class ReminderRepositoryImpl implements ReminderRepository {
     } else if (reminder.category == 'exam') {
       await notificationService.cancelExamCountdownReminders(reminder.id);
       await notificationService.scheduleExamCountdownReminders(reminder);
+      await notificationService.scheduleAtTime(
+        id: notificationId,
+        title: 'Exam: ${reminder.title}',
+        body: 'Your exam is starting now.',
+        scheduledTime: reminder.scheduledTime,
+      );
     } else if (reminder.category == 'birthday') {
       await notificationService.scheduleBirthdayNotification(
         id: notificationId,
