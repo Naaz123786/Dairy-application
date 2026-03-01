@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'injection_container.dart' as di;
 import 'core/theme/app_theme.dart';
 import 'core/routes/app_routes.dart';
@@ -39,6 +40,16 @@ void main() {
     final notificationService = NotificationService();
     await notificationService.init();
     await notificationService.requestPermissions();
+
+    // Awesome Notifications: set listeners (required for scheduled notifications)
+    if (!kIsWeb) {
+      AwesomeNotifications().setListeners(
+        onActionReceivedMethod: NotificationController.onActionReceivedMethod,
+        onNotificationCreatedMethod: NotificationController.onNotificationCreatedMethod,
+        onNotificationDisplayedMethod: NotificationController.onNotificationDisplayedMethod,
+        onDismissActionReceivedMethod: NotificationController.onDismissActionReceivedMethod,
+      );
+    }
 
     // Reschedule daily reminder if enabled
     if (localDb.isDailyReminderEnabled()) {
@@ -100,4 +111,19 @@ class MyApp extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Awesome Notifications event handlers (required by plugin).
+class NotificationController {
+  @pragma('vm:entry-point')
+  static Future<void> onActionReceivedMethod(ReceivedAction receivedAction) async {}
+
+  @pragma('vm:entry-point')
+  static Future<void> onNotificationCreatedMethod(ReceivedNotification receivedNotification) async {}
+
+  @pragma('vm:entry-point')
+  static Future<void> onNotificationDisplayedMethod(ReceivedNotification receivedNotification) async {}
+
+  @pragma('vm:entry-point')
+  static Future<void> onDismissActionReceivedMethod(ReceivedAction receivedAction) async {}
 }

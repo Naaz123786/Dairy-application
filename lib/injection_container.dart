@@ -37,6 +37,5 @@ Future<void> init() async {
 
   //! External
   await sl<LocalDatabase>().init();
-  await sl<NotificationService>().init();
-  await sl<NotificationService>().requestPermissions();
+  // Notification init is done in main() after binding so channel list is sent correctly.
 }
