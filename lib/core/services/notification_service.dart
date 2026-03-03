@@ -13,6 +13,8 @@ class NotificationService {
   static const String _channelExam = _channelReminders;
   static const String _channelBirthdays = _channelReminders;
 
+  /// Exam countdown reminder times: 12 AM, 6 AM, 6 PM
+  static const int _examCountdownMidnightHour = 0;
   static const int _examCountdownMorningHour = 6;
   static const int _examCountdownEveningHour = 18;
   static const int _examCountdownCancelRange = 400;
@@ -40,9 +42,10 @@ class NotificationService {
     );
   }
 
+  /// slot: 0 = 12 AM, 1 = 6 AM, 2 = 6 PM
   int _examCountdownId(String examId, int dayIndex, int slot) {
     final base = (examId.hashCode & 0x3FFFFFFF) * 100;
-    return base + dayIndex * 2 + slot;
+    return base + dayIndex * 3 + slot;
   }
 
   Future<String> _getTimeZone() async {
@@ -55,92 +58,102 @@ class NotificationService {
 
   Future<void> scheduleExamCountdownReminders(Reminder exam) async {
     if (kIsWeb) return;
-    final examDate = DateTime(exam.scheduledTime.year, exam.scheduledTime.month,
-        exam.scheduledTime.day);
-    final today =
-        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-    if (examDate.isBefore(today)) return;
+    try {
+      final tz = await _getTimeZone();
+      final examDate = DateTime(exam.scheduledTime.year, exam.scheduledTime.month,
+          exam.scheduledTime.day);
+      final today =
+          DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+      if (examDate.isBefore(today)) return;
 
-    final daysLeft = examDate.difference(today).inDays;
+      final daysLeft = examDate.difference(today).inDays;
 
-    for (int dayIndex = 0; dayIndex < daysLeft; dayIndex++) {
-      final date = today.add(Duration(days: dayIndex));
-      final daysRemaining = daysLeft - dayIndex;
-      final body = daysRemaining == 1
-          ? 'Tomorrow is your exam: ${exam.title}'
-          : '$daysRemaining days left – ${exam.title}';
+      final times = [
+        _examCountdownMidnightHour, // 12 AM
+        _examCountdownMorningHour,  // 6 AM
+        _examCountdownEveningHour,  // 6 PM
+      ];
 
-      final morningAt = DateTime(
-          date.year, date.month, date.day, _examCountdownMorningHour, 0);
-      if (morningAt.isAfter(DateTime.now())) {
-        await AwesomeNotifications().createNotification(
-          content: NotificationContent(
-            id: _examCountdownId(exam.id, dayIndex, 0),
-            channelKey: _channelExam,
-            title: 'Exam reminder 📚',
-            body: body,
-            category: NotificationCategory.Reminder,
-            wakeUpScreen: true,
-          ),
-          schedule: NotificationCalendar.fromDate(
-            date: morningAt,
-            allowWhileIdle: true,
-            preciseAlarm: true,
-          ),
-        );
+      for (int dayIndex = 0; dayIndex < daysLeft; dayIndex++) {
+        final date = today.add(Duration(days: dayIndex));
+        final daysRemaining = daysLeft - dayIndex;
+        final body = daysRemaining == 1
+            ? 'Tomorrow is your exam: ${exam.title}'
+            : '$daysRemaining days left – ${exam.title}';
+
+        for (int slot = 0; slot < times.length; slot++) {
+          final at = DateTime(
+              date.year, date.month, date.day, times[slot], 0);
+          if (at.isAfter(DateTime.now())) {
+            await AwesomeNotifications().createNotification(
+              content: NotificationContent(
+                id: _examCountdownId(exam.id, dayIndex, slot),
+                channelKey: _channelExam,
+                title: 'Exam reminder 📚',
+                body: body,
+                category: NotificationCategory.Reminder,
+                wakeUpScreen: true,
+              ),
+              schedule: NotificationCalendar(
+                year: at.year,
+                month: at.month,
+                day: at.day,
+                hour: at.hour,
+                minute: at.minute,
+                second: 0,
+                timeZone: tz,
+                allowWhileIdle: true,
+                preciseAlarm: true,
+                repeats: false,
+              ),
+            );
+          }
+        }
       }
 
-      final eveningAt = DateTime(
-          date.year, date.month, date.day, _examCountdownEveningHour, 0);
-      if (eveningAt.isAfter(DateTime.now())) {
-        await AwesomeNotifications().createNotification(
-          content: NotificationContent(
-            id: _examCountdownId(exam.id, dayIndex, 1),
-            channelKey: _channelExam,
-            title: 'Exam reminder 📚',
-            body: body,
-            category: NotificationCategory.Reminder,
-            wakeUpScreen: true,
-          ),
-          schedule: NotificationCalendar.fromDate(
-            date: eveningAt,
-            allowWhileIdle: true,
-            preciseAlarm: true,
-          ),
-        );
+      // Exam day: 12 AM, 6 AM, 6 PM reminders
+      for (int slot = 0; slot < times.length; slot++) {
+        final at = DateTime(examDate.year, examDate.month, examDate.day,
+            times[slot], 0);
+        if (at.isAfter(DateTime.now())) {
+          await AwesomeNotifications().createNotification(
+            content: NotificationContent(
+              id: _examCountdownId(exam.id, daysLeft, slot),
+              channelKey: _channelExam,
+              title: 'Exam today 📚',
+              body: 'Today is your exam: ${exam.title}',
+              category: NotificationCategory.Reminder,
+              wakeUpScreen: true,
+            ),
+            schedule: NotificationCalendar(
+              year: at.year,
+              month: at.month,
+              day: at.day,
+              hour: at.hour,
+              minute: at.minute,
+              second: 0,
+              timeZone: tz,
+              allowWhileIdle: true,
+              preciseAlarm: true,
+              repeats: false,
+            ),
+          );
+        }
       }
-    }
 
-    final examDayMorning = DateTime(examDate.year, examDate.month, examDate.day,
-        _examCountdownMorningHour, 0);
-    if (examDayMorning.isAfter(DateTime.now())) {
-      await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-          id: _examCountdownId(exam.id, daysLeft, 0),
-          channelKey: _channelExam,
-          title: 'Exam today 📚',
-          body: 'Today is your exam: ${exam.title}',
-          category: NotificationCategory.Reminder,
-          wakeUpScreen: true,
-        ),
-        schedule: NotificationCalendar.fromDate(
-          date: examDayMorning,
-          allowWhileIdle: true,
-          preciseAlarm: true,
-        ),
-      );
+      debugPrint(
+          'Exam countdown scheduled for "${exam.title}" at 12 AM, 6 AM, 6 PM ($daysLeft days + exam day)');
+    } catch (e) {
+      debugPrint('scheduleExamCountdownReminders error: $e');
     }
-
-    debugPrint(
-        'Exam countdown scheduled for "${exam.title}" ($daysLeft days + exam day morning)');
   }
 
   Future<void> cancelExamCountdownReminders(String examId) async {
     for (int dayIndex = 0; dayIndex < _examCountdownCancelRange; dayIndex++) {
-      await AwesomeNotifications()
-          .cancel(_examCountdownId(examId, dayIndex, 0));
-      await AwesomeNotifications()
-          .cancel(_examCountdownId(examId, dayIndex, 1));
+      for (int slot = 0; slot < 3; slot++) {
+        await AwesomeNotifications()
+            .cancel(_examCountdownId(examId, dayIndex, slot));
+      }
     }
     debugPrint('Exam countdown cancelled for $examId');
   }
@@ -235,6 +248,7 @@ class NotificationService {
     try {
       if (scheduledTime.isBefore(DateTime.now())) return;
       final safeId = id & 0x7FFFFFFF;
+      final tz = await _getTimeZone();
       await AwesomeNotifications().createNotification(
         content: NotificationContent(
           id: safeId,
@@ -244,10 +258,17 @@ class NotificationService {
           category: NotificationCategory.Reminder,
           wakeUpScreen: true,
         ),
-        schedule: NotificationCalendar.fromDate(
-          date: scheduledTime,
+        schedule: NotificationCalendar(
+          year: scheduledTime.year,
+          month: scheduledTime.month,
+          day: scheduledTime.day,
+          hour: scheduledTime.hour,
+          minute: scheduledTime.minute,
+          second: scheduledTime.second,
+          timeZone: tz,
           allowWhileIdle: true,
           preciseAlarm: true,
+          repeats: false,
         ),
       );
       debugPrint('Reminder scheduled at $scheduledTime');
@@ -268,6 +289,7 @@ class NotificationService {
   }) async {
     if (kIsWeb) return;
     try {
+      final tz = await _getTimeZone();
       final now = DateTime.now();
       int year = now.year;
       final month = birthdayDate.month;
@@ -295,10 +317,17 @@ class NotificationService {
             category: NotificationCategory.Reminder,
             wakeUpScreen: true,
           ),
-          schedule: NotificationCalendar.fromDate(
-            date: bdMidnight,
+          schedule: NotificationCalendar(
+            year: bdMidnight.year,
+            month: bdMidnight.month,
+            day: bdMidnight.day,
+            hour: 0,
+            minute: 0,
+            second: 0,
+            timeZone: tz,
             allowWhileIdle: true,
             preciseAlarm: true,
+            repeats: false,
           ),
         );
       }
@@ -312,10 +341,17 @@ class NotificationService {
             category: NotificationCategory.Reminder,
             wakeUpScreen: true,
           ),
-          schedule: NotificationCalendar.fromDate(
-            date: bdMorning,
+          schedule: NotificationCalendar(
+            year: bdMorning.year,
+            month: bdMorning.month,
+            day: bdMorning.day,
+            hour: 6,
+            minute: 0,
+            second: 0,
+            timeZone: tz,
             allowWhileIdle: true,
             preciseAlarm: true,
+            repeats: false,
           ),
         );
       }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/datasources/local_database.dart';
-import '../../core/security/security_service.dart';
 import 'package:get_it/get_it.dart';
 
 class LockScreen extends StatefulWidget {
@@ -20,24 +19,8 @@ class LockScreen extends StatefulWidget {
 
 class _LockScreenState extends State<LockScreen> {
   final _localDb = GetIt.I<LocalDatabase>();
-  final _securityService = GetIt.I<SecurityService>();
   final _pinController = TextEditingController();
   bool _isError = false;
-
-  @override
-  void initState() {
-    super.initState();
-    if (_localDb.isBiometricEnabled()) {
-      _authenticateWithBiometrics();
-    }
-  }
-
-  Future<void> _authenticateWithBiometrics() async {
-    final success = await _securityService.authenticate();
-    if (success) {
-      widget.onUnlocked();
-    }
-  }
 
   void _onPinChanged(String val) {
     if (val.length == _localDb.getDiaryPin()?.length) {
@@ -91,14 +74,6 @@ class _LockScreenState extends State<LockScreen> {
               _buildPinDots(),
               const SizedBox(height: 48),
               _buildNumpad(),
-              if (_localDb.isBiometricEnabled()) ...[
-                const SizedBox(height: 24),
-                IconButton(
-                  icon: const Icon(Icons.fingerprint,
-                      size: 48, color: Colors.cyan),
-                  onPressed: _authenticateWithBiometrics,
-                ),
-              ],
             ],
           ),
         ),

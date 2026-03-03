@@ -64,7 +64,9 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
 
   ReminderBloc({required this.repository}) : super(ReminderInitial()) {
     on<LoadReminders>((event, emit) async {
-      emit(ReminderLoading());
+      // Only show full-screen loading on first load; keep previous list visible when refreshing
+      final isFirstLoad = state is! ReminderLoaded;
+      if (isFirstLoad) emit(ReminderLoading());
       try {
         final reminders = await repository.getReminders();
         emit(ReminderLoaded(reminders));

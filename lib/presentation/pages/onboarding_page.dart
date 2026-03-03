@@ -19,7 +19,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     OnboardingContent(
       title: 'Your Private\nSanctuary',
       description:
-          'A secure space for your thoughts, encrypted and protected with biometric lock.',
+          'A secure space for your thoughts, encrypted and protected with PIN lock.',
       icon: Icons.security_outlined,
     ),
     OnboardingContent(

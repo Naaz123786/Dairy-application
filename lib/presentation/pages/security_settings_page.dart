@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/datasources/local_database.dart';
-import '../../core/security/security_service.dart';
 import 'package:get_it/get_it.dart';
 
 class SecuritySettingsPage extends StatefulWidget {
@@ -13,29 +12,15 @@ class SecuritySettingsPage extends StatefulWidget {
 
 class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
   final _localDb = GetIt.I<LocalDatabase>();
-  final _securityService = GetIt.I<SecurityService>();
 
   late bool _appLockEnabled;
   late bool _diaryLockEnabled;
-  late bool _biometricEnabled;
-  bool _canCheckBiometrics = false;
 
   @override
   void initState() {
     super.initState();
     _appLockEnabled = _localDb.isAppLockEnabled();
     _diaryLockEnabled = _localDb.isDiaryLockEnabled();
-    _biometricEnabled = _localDb.isBiometricEnabled();
-    _checkBiometricSupport();
-  }
-
-  Future<void> _checkBiometricSupport() async {
-    final support = await _securityService.canCheckBiometrics();
-    if (mounted) {
-      setState(() {
-        _canCheckBiometrics = support;
-      });
-    }
   }
 
   void _showPinDialog() {
@@ -155,18 +140,6 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
           ),
           const SizedBox(height: 16),
           _buildSectionHeader('Authentication'),
-          if (_canCheckBiometrics)
-            _buildSettingTile(
-              title: 'Use Biometrics',
-              subtitle: 'Fingerprint or FaceID',
-              icon: Icons.fingerprint,
-              value: _biometricEnabled,
-              onChanged: (val) async {
-                await _localDb.setBiometricEnabled(val);
-                setState(() => _biometricEnabled = val);
-              },
-              isDark: isDark,
-            ),
           ListTile(
             leading: Container(
               padding: const EdgeInsets.all(8),

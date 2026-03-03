@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import '../../domain/entities/diary_entry.dart';
 import '../bloc/diary_bloc.dart';
@@ -108,27 +109,104 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
   }
 
   Future<void> _pickImage() async {
+    if (kIsWeb) {
+      await _openImagePicker();
+      return;
+    }
+    // Step 1: Show dialog so user expects the permission prompt
+    if (mounted) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Photo access'),
+          content: const Text(
+            'To add images from your gallery, the app needs permission to access your photos. Tap Continue and then allow when the system asks.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Continue'),
+            ),
+          ],
+        ),
+      );
+      if (proceed != true || !mounted) return;
+    }
+    // Step 2: Request permission (Android 13+ = photos, older = storage)
+    PermissionStatus status = await Permission.photos.request();
+    if (!mounted) return;
+    if (!status.isGranted && !status.isPermanentlyDenied && Platform.isAndroid) {
+      status = await Permission.storage.request();
+      if (!mounted) return;
+    }
+    if (status.isGranted) {
+      await _openImagePicker();
+      return;
+    }
+    if (status.isPermanentlyDenied) {
+      if (mounted) {
+        final openSettings = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Photo access required'),
+            content: const Text(
+              'To add images from your gallery, please allow photo access in Settings.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Open Settings'),
+              ),
+            ],
+          ),
+        );
+        if (openSettings == true) await openAppSettings();
+      }
+      return;
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Allow photo access to add images from gallery'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openImagePicker() async {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
         String imagePath = image.path;
 
         if (kIsWeb) {
-          // On Web, we must convert the image to Base64 for persistence
-          // because blob URLs are temporary and expires on reload.
           final bytes = await image.readAsBytes();
           imagePath = 'data:image/png;base64,${base64Encode(bytes)}';
         }
 
-        setState(() {
-          _attachedImages.add(imagePath);
-        });
+        if (mounted) {
+          setState(() {
+            _attachedImages.add(imagePath);
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error picking image: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to pick image: $e')),
+        SnackBar(
+          content: Text('Failed to pick image: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }

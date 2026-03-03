@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/diary_entry_model.dart';
@@ -37,24 +38,42 @@ class LocalDatabase {
     Hive.registerAdapter(DiaryEntryModelAdapter());
     Hive.registerAdapter(ReminderModelAdapter());
 
-    // Encryption Key Logic
-    String? keyString = await _secureStorage.read(key: _keyStorageKey);
+    // Encryption Key Logic (handle corrupted key e.g. after storage full / plugin upgrade)
     List<int> encryptionKey;
-    if (keyString == null) {
+    try {
+      final keyString = await _secureStorage.read(key: _keyStorageKey);
+      if (keyString == null) {
+        encryptionKey = Hive.generateSecureKey();
+        await _secureStorage.write(
+          key: _keyStorageKey,
+          value: base64Url.encode(encryptionKey),
+        );
+      } else {
+        encryptionKey = base64Url.decode(keyString);
+      }
+    } on PlatformException catch (_) {
+      // Corrupted or incompatible key (e.g. WRONG_FINAL_BLOCK_LENGTH) – use new key
+      await _secureStorage.delete(key: _keyStorageKey);
       encryptionKey = Hive.generateSecureKey();
       await _secureStorage.write(
         key: _keyStorageKey,
         value: base64Url.encode(encryptionKey),
       );
-    } else {
-      encryptionKey = base64Url.decode(keyString);
     }
 
-    // Open Boxes
-    _diaryBox = await Hive.openBox<DiaryEntryModel>(
-      _diaryBoxName,
-      encryptionCipher: HiveAesCipher(encryptionKey),
-    );
+    // Open Boxes (if diary box fails due to old key, open fresh)
+    try {
+      _diaryBox = await Hive.openBox<DiaryEntryModel>(
+        _diaryBoxName,
+        encryptionCipher: HiveAesCipher(encryptionKey),
+      );
+    } catch (_) {
+      await Hive.deleteBoxFromDisk(_diaryBoxName);
+      _diaryBox = await Hive.openBox<DiaryEntryModel>(
+        _diaryBoxName,
+        encryptionCipher: HiveAesCipher(encryptionKey),
+      );
+    }
 
     _remindersBox = await Hive.openBox<ReminderModel>(_remindersBoxName);
     _settingsBox = await Hive.openBox(_settingsBoxName);

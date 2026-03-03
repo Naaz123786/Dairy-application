@@ -81,48 +81,50 @@ class ReminderRepositoryImpl implements ReminderRepository {
       }
     }
 
-    // Schedule Notification at exact time/date
-    final notificationId = reminder.id.hashCode;
-
-    if (reminder.category == 'routine') {
-      await notificationService.scheduleRoutineDaily(
-        id: notificationId,
-        title: 'Routine: ${reminder.title}',
-        body: 'Time for your task!',
-        hour: reminder.scheduledTime.hour,
-        minute: reminder.scheduledTime.minute,
-      );
-    } else if (reminder.category == 'exam') {
-      await notificationService.cancelExamCountdownReminders(reminder.id);
-      await notificationService.scheduleExamCountdownReminders(reminder);
-      await notificationService.scheduleAtTime(
-        id: notificationId,
-        title: 'Exam: ${reminder.title}',
-        body: 'Your exam is starting now.',
-        scheduledTime: reminder.scheduledTime,
-      );
-    } else if (reminder.category == 'birthday') {
-      await notificationService.scheduleBirthdayNotification(
-        id: notificationId,
-        name: reminder.title,
-        birthdayDate: reminder.scheduledTime,
-        isYearly: reminder.isRecurring,
-      );
-    } else if (reminder.category == 'calendar' || reminder.category.isEmpty) {
-      // Calendar / general reminders: notification at exact set time & date
-      await notificationService.scheduleAtTime(
-        id: notificationId,
-        title: 'Reminder: ${reminder.title}',
-        body: 'Time for your reminder!',
-        scheduledTime: reminder.scheduledTime,
-      );
-    } else {
-      await notificationService.scheduleAtTime(
-        id: notificationId,
-        title: 'Reminder: ${reminder.title}',
-        body: 'You have a reminder now!',
-        scheduledTime: reminder.scheduledTime,
-      );
+    // Schedule notifications (don't fail the add if notifications fail)
+    try {
+      final notificationId = reminder.id.hashCode;
+      if (reminder.category == 'routine') {
+        await notificationService.scheduleRoutineDaily(
+          id: notificationId,
+          title: 'Routine: ${reminder.title}',
+          body: 'Time for your task!',
+          hour: reminder.scheduledTime.hour,
+          minute: reminder.scheduledTime.minute,
+        );
+      } else if (reminder.category == 'exam') {
+        await notificationService.cancelExamCountdownReminders(reminder.id);
+        await notificationService.scheduleExamCountdownReminders(reminder);
+        await notificationService.scheduleAtTime(
+          id: notificationId,
+          title: 'Exam: ${reminder.title}',
+          body: 'Your exam is starting now.',
+          scheduledTime: reminder.scheduledTime,
+        );
+      } else if (reminder.category == 'birthday') {
+        await notificationService.scheduleBirthdayNotification(
+          id: notificationId,
+          name: reminder.title,
+          birthdayDate: reminder.scheduledTime,
+          isYearly: reminder.isRecurring,
+        );
+      } else if (reminder.category == 'calendar' || reminder.category.isEmpty) {
+        await notificationService.scheduleAtTime(
+          id: notificationId,
+          title: 'Reminder: ${reminder.title}',
+          body: 'Time for your reminder!',
+          scheduledTime: reminder.scheduledTime,
+        );
+      } else {
+        await notificationService.scheduleAtTime(
+          id: notificationId,
+          title: 'Reminder: ${reminder.title}',
+          body: 'You have a reminder now!',
+          scheduledTime: reminder.scheduledTime,
+        );
+      }
+    } catch (e) {
+      debugPrint('Reminder notification schedule failed: $e');
     }
   }
 

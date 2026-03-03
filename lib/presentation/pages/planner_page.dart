@@ -288,22 +288,52 @@ class PlannerView extends StatelessWidget {
 
     showDialog(
       context: parentContext,
+      barrierDismissible: false,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              title: Text(reminder == null ? 'New Exam' : 'Edit Exam'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: titleController,
-                    decoration: const InputDecoration(
-                      labelText: 'Subject (e.g. Mathematics)',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.school),
+            return PopScope(
+              canPop: false,
+              onPopInvokedWithResult: (didPop, result) async {
+                if (didPop) return;
+                final leave = await showDialog<bool>(
+                  context: context,
+                  builder: (c) => AlertDialog(
+                    title: const Text('Discard exam?'),
+                    content: const Text(
+                      'Changes will not be saved.',
                     ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(c, false),
+                        child: const Text('Stay'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(c, true),
+                        child: const Text('Discard'),
+                      ),
+                    ],
                   ),
+                );
+                if (leave == true && context.mounted) {
+                  Navigator.pop(context);
+                }
+              },
+              child: AlertDialog(
+                title: Text(reminder == null ? 'New Exam' : 'Edit Exam'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: titleController,
+                        decoration: const InputDecoration(
+                          labelText: 'Subject (e.g. Mathematics)',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.school),
+                        ),
+                        textInputAction: TextInputAction.done,
+                      ),
                   const SizedBox(height: 16),
                   InkWell(
                     onTap: () async {
@@ -357,15 +387,25 @@ class PlannerView extends StatelessWidget {
                     ),
                   ),
                 ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  ),
                 ),
-                FilledButton(
-                  onPressed: () {
-                    if (titleController.text.isNotEmpty) {
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      final title = titleController.text.trim();
+                      if (title.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please enter subject name'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                        return;
+                      }
                       final scheduled = DateTime(
                         selectedDate.year,
                         selectedDate.month,
@@ -375,7 +415,7 @@ class PlannerView extends StatelessWidget {
                       );
                       final newReminder = Reminder(
                         id: reminder?.id ?? const Uuid().v4(),
-                        title: titleController.text,
+                        title: title,
                         scheduledTime: scheduled,
                         category: 'exam',
                         isRecurring: false,
@@ -391,11 +431,11 @@ class PlannerView extends StatelessWidget {
                             );
                       }
                       Navigator.pop(context);
-                    }
-                  },
-                  child: Text(reminder == null ? 'Add Exam' : 'Save'),
-                ),
-              ],
+                    },
+                    child: Text(reminder == null ? 'Add Exam' : 'Save'),
+                  ),
+                ],
+              ),
             );
           },
         );
@@ -447,9 +487,35 @@ class RoutineTab extends StatelessWidget {
                     subtitle: DateFormat.jm().format(routine.scheduledTime),
                     icon: Icons.access_time,
                     onTap: () => showRoutineDialog(context, reminder: routine),
-                    onDelete: () => context.read<ReminderBloc>().add(
-                          DeleteReminder(routine.id),
+                    onDelete: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (c) => AlertDialog(
+                          title: const Text('Delete routine?'),
+                          content: const Text(
+                            'This routine will be removed. You can add it again later.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(c, false),
+                              child: const Text('Cancel'),
+                            ),
+                            FilledButton(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Colors.red,
+                              ),
+                              onPressed: () => Navigator.pop(c, true),
+                              child: const Text('Delete'),
+                            ),
+                          ],
                         ),
+                      );
+                      if (confirm == true && context.mounted) {
+                        context.read<ReminderBloc>().add(
+                              DeleteReminder(routine.id),
+                            );
+                      }
+                    },
                     trailingActions: [
                       _buildActionChip(
                         icon: Icons.edit,
@@ -574,8 +640,33 @@ class ExamsTab extends StatelessWidget {
                       ],
                     ),
                     onTap: () => showExamDialog(context, reminder: exam),
-                    onDelete: () =>
-                        context.read<ReminderBloc>().add(DeleteReminder(exam.id)),
+                    onDelete: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (c) => AlertDialog(
+                          title: const Text('Delete exam?'),
+                          content: const Text(
+                            'This exam will be removed. You can add it again later.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(c, false),
+                              child: const Text('Cancel'),
+                            ),
+                            FilledButton(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Colors.red,
+                              ),
+                              onPressed: () => Navigator.pop(c, true),
+                              child: const Text('Delete'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm == true && context.mounted) {
+                        context.read<ReminderBloc>().add(DeleteReminder(exam.id));
+                      }
+                    },
                     trailingActions: [
                       _buildActionChip(
                         icon: Icons.edit,
@@ -587,6 +678,28 @@ class ExamsTab extends StatelessWidget {
                     ],
                   );
                 },
+              );
+            }
+            if (state is ReminderLoading || state is ReminderInitial) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (state is ReminderError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      state.message,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () =>
+                          context.read<ReminderBloc>().add(LoadReminders()),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
               );
             }
             return const SizedBox.shrink();
