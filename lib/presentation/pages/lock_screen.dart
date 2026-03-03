@@ -6,11 +6,14 @@ import 'package:get_it/get_it.dart';
 class LockScreen extends StatefulWidget {
   final bool isAppLock; // True for Global Lock, False for section lock
   final VoidCallback onUnlocked;
+  /// When set, a back arrow is shown; on tap this is called (e.g. go back without unlocking).
+  final VoidCallback? onBack;
 
   const LockScreen({
     super.key,
     required this.isAppLock,
     required this.onUnlocked,
+    this.onBack,
   });
 
   @override
@@ -42,40 +45,65 @@ class _LockScreenState extends State<LockScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final showBack = widget.onBack != null || Navigator.canPop(context);
+
     return Scaffold(
       backgroundColor: isDark ? AppTheme.black : AppTheme.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                widget.isAppLock ? Icons.security : Icons.lock_outline,
-                size: 80,
-                color: Colors.cyan,
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    widget.isAppLock ? Icons.security : Icons.lock_outline,
+                    size: 80,
+                    color: Colors.cyan,
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    widget.isAppLock ? 'App Locked' : 'Diary Locked',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Enter PIN to continue',
+                    style: TextStyle(
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+                  _buildPinDots(),
+                  const SizedBox(height: 48),
+                  _buildNumpad(),
+                ],
               ),
-              const SizedBox(height: 24),
-              Text(
-                widget.isAppLock ? 'App Locked' : 'Diary Locked',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+            ),
+            if (showBack)
+              Positioned(
+                top: 8,
+                left: 8,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                  onPressed: () {
+                    if (widget.onBack != null) {
+                      widget.onBack!();
+                    } else if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    }
+                  },
+                  style: IconButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                    foregroundColor: isDark ? Colors.white70 : Colors.black87,
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Enter PIN to continue',
-                style: TextStyle(
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                ),
-              ),
-              const SizedBox(height: 48),
-              _buildPinDots(),
-              const SizedBox(height: 48),
-              _buildNumpad(),
-            ],
-          ),
+          ],
         ),
       ),
     );

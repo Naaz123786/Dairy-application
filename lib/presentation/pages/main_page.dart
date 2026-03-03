@@ -138,6 +138,7 @@ class _MainPageState extends State<MainPage>
             _currentIndex = 3;
           });
         },
+        onBack: () => setState(() => _isSectionLocked = false),
       );
     }
 

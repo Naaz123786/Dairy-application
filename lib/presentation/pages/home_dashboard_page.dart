@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'dart:math';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get_it/get_it.dart';
+
 import '../../core/theme/app_theme.dart';
 import '../bloc/diary_bloc.dart';
 import '../bloc/reminder_bloc.dart';
 import '../../domain/entities/reminder.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/routes/app_routes.dart';
+import '../../data/datasources/local_database.dart';
+import 'lock_screen.dart';
 
 class HomeDashboardPage extends StatefulWidget {
   const HomeDashboardPage({super.key});
@@ -937,14 +941,34 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            final user = FirebaseAuth.instance.currentUser;
-            if (user == null) {
-              Navigator.pushNamed(context, AppRoutes.login);
-              return;
+            if (route == null) return;
+
+            // Special handling for Diary quick action (Write):
+            // respect diary lock the same way as bottom tab.
+            if (route == AppRoutes.diaryEdit) {
+              final localDb = GetIt.I<LocalDatabase>();
+              final isGlobalLockActive = localDb.isAppLockEnabled();
+              final isDiaryLockActive = localDb.isDiaryLockEnabled();
+              final hasPin = localDb.hasDiaryPin();
+
+              if (!isGlobalLockActive && isDiaryLockActive && hasPin) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => LockScreen(
+                      isAppLock: false,
+                      onUnlocked: () {
+                        Navigator.pushReplacementNamed(
+                            context, AppRoutes.diaryEdit);
+                      },
+                    ),
+                  ),
+                );
+                return;
+              }
             }
-            if (route != null) {
-              Navigator.pushNamed(context, route);
-            }
+
+            Navigator.pushNamed(context, route);
           },
           borderRadius: BorderRadius.circular(20),
           child: Padding(
