@@ -62,6 +62,27 @@ class ReminderRepositoryImpl implements ReminderRepository {
     }
 
     final models = localDatabase.remindersBox.values.toList();
+    // Heal notification schedules for already-saved future exams.
+    // This ensures countdown notifications exist even after app updates/reinstalls.
+    final nowAfterCleanup = DateTime.now();
+    for (final model in models) {
+      if (model.category != 'exam') continue;
+      if (!model.scheduledTime.isAfter(nowAfterCleanup)) continue;
+      final exam = _mapModelToEntity(model);
+      try {
+        await notificationService.cancelExamCountdownReminders(exam.id);
+        await notificationService.scheduleExamCountdownReminders(exam);
+        await notificationService.scheduleAtTime(
+          id: exam.id.hashCode,
+          title: 'Exam: ${exam.title}',
+          body: 'Your exam is starting now.',
+          scheduledTime: exam.scheduledTime,
+        );
+      } catch (e) {
+        debugPrint('Exam reschedule on load failed (${exam.id}): $e');
+      }
+    }
+
     return models.map(_mapModelToEntity).toList();
   }
 

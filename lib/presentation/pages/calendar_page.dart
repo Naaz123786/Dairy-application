@@ -544,7 +544,10 @@ class _CalendarViewState extends State<CalendarView> {
                         lastDate: DateTime(2100),
                       );
                       if (picked != null) {
-                        setState(() => selectedDate = picked);
+                        setState(() => selectedDate = DateTime(
+                          picked.year, picked.month, picked.day,
+                          selectedDate.hour, selectedDate.minute,
+                        ));
                       }
                     },
                     child: InputDecorator(
@@ -558,6 +561,36 @@ class _CalendarViewState extends State<CalendarView> {
                       child: Text(DateFormat.yMMMd().format(selectedDate)),
                     ),
                   ),
+                  if (!isBirthday) ...[
+                    const SizedBox(height: 16),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay(
+                            hour: selectedDate.hour,
+                            minute: selectedDate.minute,
+                          ),
+                        );
+                        if (picked != null) {
+                          setState(() => selectedDate = DateTime(
+                            selectedDate.year, selectedDate.month, selectedDate.day,
+                            picked.hour, picked.minute,
+                          ));
+                        }
+                      },
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'Time',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          suffixIcon: const Icon(Icons.access_time),
+                        ),
+                        child: Text(DateFormat.jm().format(selectedDate)),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   if (isBirthday)
                     SwitchListTile(

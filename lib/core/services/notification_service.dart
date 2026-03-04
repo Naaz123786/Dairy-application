@@ -44,8 +44,12 @@ class NotificationService {
 
   /// slot: 0 = 12 AM, 1 = 6 AM, 2 = 6 PM
   int _examCountdownId(String examId, int dayIndex, int slot) {
-    final base = (examId.hashCode & 0x3FFFFFFF) * 100;
-    return base + dayIndex * 3 + slot;
+    // Awesome Notifications expects 32-bit int IDs.
+    // Keep a stable per-exam prefix and reserve last 3 digits
+    // for day/slot to avoid collisions while staying in safe range.
+    final stablePrefix = examId.hashCode & 0x000FFFFF; // up to 1,048,575
+    final suffix = dayIndex * 3 + slot; // 0..1199 with current cancel range
+    return ((stablePrefix * 1000) + suffix) & 0x7FFFFFFF;
   }
 
   Future<String> _getTimeZone() async {
