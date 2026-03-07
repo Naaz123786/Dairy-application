@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -139,7 +140,9 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
     // Step 2: Request permission (Android 13+ = photos, older = storage)
     PermissionStatus status = await Permission.photos.request();
     if (!mounted) return;
-    if (!status.isGranted && !status.isPermanentlyDenied && Platform.isAndroid) {
+    if (!status.isGranted &&
+        !status.isPermanentlyDenied &&
+        Platform.isAndroid) {
       status = await Permission.storage.request();
       if (!mounted) return;
     }
@@ -184,20 +187,55 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
 
   Future<void> _openImagePicker() async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-      if (image != null) {
-        String imagePath = image.path;
-
-        if (kIsWeb) {
-          final bytes = await image.readAsBytes();
-          imagePath = 'data:image/png;base64,${base64Encode(bytes)}';
-        }
-
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (image == null) {
         if (mounted) {
-          setState(() {
-            _attachedImages.add(imagePath);
-          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'No image selected. On emulator, add photos in gallery or take a photo.',
+              ),
+              behavior: SnackBarBehavior.floating,
+              action: SnackBarAction(
+                label: 'Take photo',
+                onPressed: () => _pickImageFromCamera(),
+              ),
+            ),
+          );
         }
+        return;
+      }
+      String imagePath = image.path;
+
+      if (kIsWeb) {
+        final bytes = await image.readAsBytes();
+        imagePath = 'data:image/png;base64,${base64Encode(bytes)}';
+      } else {
+        final bytes = await image.readAsBytes();
+        if (bytes.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Could not read image. Try another photo.'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+          return;
+        }
+        final mime = image.path.toLowerCase().endsWith('.png')
+            ? 'image/png'
+            : 'image/jpeg';
+        imagePath = 'data:$mime;base64,${base64Encode(bytes)}';
+      }
+
+      if (mounted) {
+        setState(() {
+          _attachedImages.add(imagePath);
+        });
       }
     } catch (e) {
       debugPrint('Error picking image: $e');
@@ -208,6 +246,33 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+    }
+  }
+
+  Future<void> _pickImageFromCamera() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+      );
+      if (image == null || !mounted) return;
+      final bytes = await image.readAsBytes();
+      if (bytes.isEmpty || !mounted) return;
+      final mime = image.path.toLowerCase().endsWith('.png')
+          ? 'image/png'
+          : 'image/jpeg';
+      final imagePath = 'data:$mime;base64,${base64Encode(bytes)}';
+      setState(() => _attachedImages.add(imagePath));
+    } catch (e) {
+      debugPrint('Camera pick error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to take photo: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -237,8 +302,8 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
           ),
           // Templates button (available for both new + edit)
           IconButton(
-            icon:
-                const Icon(Icons.dashboard_customize_outlined, color: Colors.cyan),
+            icon: const Icon(Icons.dashboard_customize_outlined,
+                color: Colors.cyan),
             tooltip: 'Entry Templates',
             onPressed: () => _showTemplates(isDark),
           ),
@@ -1126,8 +1191,9 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
                 right: 6,
                 top: 6,
                 child: IconButton(
-                  tooltip:
-                      _isToolbarExpanded ? 'Collapse toolbar' : 'Expand toolbar',
+                  tooltip: _isToolbarExpanded
+                      ? 'Collapse toolbar'
+                      : 'Expand toolbar',
                   onPressed: () {
                     setState(() => _isToolbarExpanded = !_isToolbarExpanded);
                   },
@@ -1323,7 +1389,11 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
           final height = width * 0.6;
 
           if (count == 1) {
-            return _buildImageItem(context, 0, width, height, isDark);
+            return SizedBox(
+              width: width,
+              height: height,
+              child: _buildImageItem(context, 0, width, height, isDark),
+            );
           } else if (count == 2) {
             return SizedBox(
               height: height,
@@ -1387,25 +1457,27 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
                             child: _buildImageItem(
                                 context, 2, null, null, isDark)),
                         const SizedBox(height: 4),
-                        Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            _buildImageItem(context, 3, null, null, isDark),
-                            if (count > 4)
-                              Container(
-                                color: Colors.black54,
-                                child: Center(
-                                  child: Text(
-                                    '+${count - 4}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              _buildImageItem(context, 3, null, null, isDark),
+                              if (count > 4)
+                                Container(
+                                  color: Colors.black54,
+                                  child: Center(
+                                    child: Text(
+                                      '+${count - 4}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -1419,18 +1491,36 @@ class _DiaryEditorPageState extends State<DiaryEditorPage> {
     );
   }
 
+  static final Uint8List _placeholderImageBytes = Uint8List.fromList(
+    base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    ),
+  );
+
   ImageProvider _getImageProvider(String path) {
     if (path.startsWith('data:image')) {
-      final base64String = path.split(',').last;
-      return MemoryImage(base64Decode(base64String));
-    } else if (path.startsWith('http')) {
-      return NetworkImage(path);
-    } else {
-      if (kIsWeb) {
-        return NetworkImage(path);
-      }
-      return FileImage(File(path));
+      try {
+        final commaIndex = path.indexOf(',');
+        if (commaIndex >= 0 && commaIndex < path.length - 1) {
+          final base64String = path.substring(commaIndex + 1).trim();
+          if (base64String.isNotEmpty) {
+            return MemoryImage(base64Decode(base64String));
+          }
+        }
+      } catch (_) {}
+      return MemoryImage(_placeholderImageBytes);
     }
+    if (path.startsWith('http')) {
+      return NetworkImage(path);
+    }
+    if (kIsWeb) {
+      return NetworkImage(path);
+    }
+    try {
+      final file = File(path);
+      if (file.existsSync()) return FileImage(file);
+    } catch (_) {}
+    return MemoryImage(_placeholderImageBytes);
   }
 
   Widget _buildImageItem(
