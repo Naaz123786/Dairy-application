@@ -384,6 +384,23 @@ class ProfilePage extends StatelessWidget {
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ),
+                const SizedBox(height: 12),
+                ListTile(
+                  leading: const Icon(Icons.schedule, color: Colors.cyan),
+                  title: const Text('Alarms & reminders'),
+                  subtitle: const Text(
+                    'If exam or birthday alerts don\'t fire on time, tap to allow exact alarms.',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  trailing: const Icon(Icons.open_in_new, size: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  onTap: () async {
+                    await notificationService.openExactAlarmSettings();
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                ),
               ],
             ),
             actions: [

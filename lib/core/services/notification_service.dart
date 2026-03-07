@@ -89,7 +89,7 @@ class NotificationService {
           final at = DateTime(
               date.year, date.month, date.day, times[slot], 0);
           if (at.isAfter(DateTime.now())) {
-            await AwesomeNotifications().createNotification(
+            final ok = await AwesomeNotifications().createNotification(
               content: NotificationContent(
                 id: _examCountdownId(exam.id, dayIndex, slot),
                 channelKey: _channelExam,
@@ -111,6 +111,7 @@ class NotificationService {
                 repeats: false,
               ),
             );
+            if (!ok) debugPrint('Exam countdown schedule failed: $at');
           }
         }
       }
@@ -120,7 +121,7 @@ class NotificationService {
         final at = DateTime(examDate.year, examDate.month, examDate.day,
             times[slot], 0);
         if (at.isAfter(DateTime.now())) {
-          await AwesomeNotifications().createNotification(
+          final ok = await AwesomeNotifications().createNotification(
             content: NotificationContent(
               id: _examCountdownId(exam.id, daysLeft, slot),
               channelKey: _channelExam,
@@ -142,6 +143,7 @@ class NotificationService {
               repeats: false,
             ),
           );
+          if (!ok) debugPrint('Exam day schedule failed: $at');
         }
       }
 
@@ -204,6 +206,17 @@ class NotificationService {
     }
   }
 
+  /// Opens system alarm/reminder settings so user can allow exact alarms (Android 12+).
+  /// Call from Settings if reminders are not firing on time.
+  Future<void> openExactAlarmSettings() async {
+    if (kIsWeb) return;
+    try {
+      await AwesomeNotifications().showAlarmPage();
+    } catch (e) {
+      debugPrint('showAlarmPage error: $e');
+    }
+  }
+
   Future<void> scheduleRoutineDaily({
     required int id,
     required String title,
@@ -250,10 +263,13 @@ class NotificationService {
   }) async {
     if (kIsWeb) return;
     try {
-      if (scheduledTime.isBefore(DateTime.now())) return;
+      if (scheduledTime.isBefore(DateTime.now())) {
+        debugPrint('scheduleAtTime skipped (past): $scheduledTime');
+        return;
+      }
       final safeId = id & 0x7FFFFFFF;
       final tz = await _getTimeZone();
-      await AwesomeNotifications().createNotification(
+      final ok = await AwesomeNotifications().createNotification(
         content: NotificationContent(
           id: safeId,
           channelKey: _channelReminders,
@@ -275,7 +291,11 @@ class NotificationService {
           repeats: false,
         ),
       );
-      debugPrint('Reminder scheduled at $scheduledTime');
+      if (ok) {
+        debugPrint('Reminder scheduled at $scheduledTime (tz: $tz)');
+      } else {
+        debugPrint('Reminder schedule failed at $scheduledTime');
+      }
     } catch (e) {
       debugPrint('scheduleAtTime error: $e');
     }
@@ -312,7 +332,7 @@ class NotificationService {
       final safeId = id & 0x7FFFFFFF;
 
       if (bdMidnight.isAfter(now)) {
-        await AwesomeNotifications().createNotification(
+        final ok = await AwesomeNotifications().createNotification(
           content: NotificationContent(
             id: safeId,
             channelKey: _channelBirthdays,
@@ -334,9 +354,10 @@ class NotificationService {
             repeats: false,
           ),
         );
+        if (!ok) debugPrint('Birthday midnight schedule failed: $name');
       }
       if (bdMorning.isAfter(now)) {
-        await AwesomeNotifications().createNotification(
+        final ok = await AwesomeNotifications().createNotification(
           content: NotificationContent(
             id: safeId + 1,
             channelKey: _channelBirthdays,
@@ -358,8 +379,9 @@ class NotificationService {
             repeats: false,
           ),
         );
+        if (!ok) debugPrint('Birthday morning schedule failed: $name');
       }
-      debugPrint('Birthday scheduled for $name at 12 AM & 6 AM');
+      debugPrint('Birthday scheduled for $name at 12 AM & 6 AM (tz: $tz)');
     } catch (e) {
       debugPrint('scheduleBirthdayNotification error: $e');
     }

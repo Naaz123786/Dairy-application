@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -77,6 +78,18 @@ class LocalDatabase {
 
     _remindersBox = await Hive.openBox<ReminderModel>(_remindersBoxName);
     _settingsBox = await Hive.openBox(_settingsBoxName);
+  }
+
+  /// Flush all boxes to disk so data persists when app is closed/killed.
+  /// Call when app goes to background (e.g. from WidgetsBindingObserver).
+  Future<void> flushBoxes() async {
+    try {
+      await _diaryBox?.flush();
+      await _remindersBox?.flush();
+      await _settingsBox?.flush();
+    } catch (e) {
+      debugPrint('LocalDatabase flushBoxes: $e');
+    }
   }
 
   bool isOnboardingComplete() {

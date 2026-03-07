@@ -9,21 +9,24 @@ import '../../core/routes/app_routes.dart';
 import '../../core/util/guest_limits.dart';
 
 class PlannerPage extends StatelessWidget {
-  const PlannerPage({super.key});
+  const PlannerPage({super.key, this.initialTabIndex = 0});
+  final int initialTabIndex;
 
   @override
   Widget build(BuildContext context) {
-    return const PlannerView();
+    return PlannerView(initialTabIndex: initialTabIndex);
   }
 }
 
 class PlannerView extends StatelessWidget {
-  const PlannerView({super.key});
+  const PlannerView({super.key, this.initialTabIndex = 0});
+  final int initialTabIndex;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return DefaultTabController(
+      initialIndex: initialTabIndex.clamp(0, 1),
       length: 2,
       child: Scaffold(
         appBar: AppBar(
@@ -276,9 +279,10 @@ class PlannerView extends StatelessWidget {
 
   void _showExamDialog(BuildContext parentContext, {Reminder? reminder}) {
     final titleController = TextEditingController(text: reminder?.title ?? '');
+    final now = DateTime.now();
     DateTime selectedDate = reminder != null
         ? reminder.scheduledTime
-        : DateTime.now().add(const Duration(days: 1));
+        : DateTime(now.year, now.month, now.day);
     TimeOfDay selectedTime = reminder != null
         ? TimeOfDay(
             hour: reminder.scheduledTime.hour,
@@ -337,14 +341,24 @@ class PlannerView extends StatelessWidget {
                   const SizedBox(height: 16),
                   InkWell(
                     onTap: () async {
+                      final now = DateTime.now();
+                      final today = DateTime(now.year, now.month, now.day);
                       final picked = await showDatePicker(
                         context: context,
-                        initialDate: selectedDate,
-                        firstDate: DateTime.now(),
+                        initialDate: selectedDate.isBefore(today)
+                            ? today
+                            : selectedDate,
+                        firstDate: today,
                         lastDate: DateTime(2030),
                       );
                       if (picked != null) {
-                        setState(() => selectedDate = picked);
+                        setState(() => selectedDate = DateTime(
+                          picked.year,
+                          picked.month,
+                          picked.day,
+                          selectedDate.hour,
+                          selectedDate.minute,
+                        ));
                       }
                     },
                     child: InputDecorator(
@@ -425,12 +439,30 @@ class PlannerView extends StatelessWidget {
                         parentContext.read<ReminderBloc>().add(
                               AddReminder(newReminder),
                             );
+                        if (ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Exam "${newReminder.title}" added. Notification at ${DateFormat.jm().format(scheduled)}.',
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
                       } else {
                         parentContext.read<ReminderBloc>().add(
                               UpdateReminder(newReminder),
                             );
+                        if (ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            const SnackBar(
+                              content: Text('Exam updated.'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
                       }
-                      Navigator.pop(context);
+                      if (context.mounted) Navigator.pop(context);
                     },
                     child: Text(reminder == null ? 'Add Exam' : 'Save'),
                   ),

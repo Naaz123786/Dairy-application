@@ -41,14 +41,23 @@ class ReminderRepositoryImpl implements ReminderRepository {
       if (model == null) continue;
 
       final isPastBy24h = now.difference(model.scheduledTime).inHours >= 24;
+      final isPastBy10Min = now.difference(model.scheduledTime).inMinutes >= 10;
 
-      // Non-recurring reminders (routine, etc.): remove 24 hours after scheduled time
+      // Calendar one-time: remove 10 minutes after notification time
+      if (model.category == 'calendar' &&
+          !model.isRecurring &&
+          isPastBy10Min) {
+        toDelete.add(model.id);
+        continue;
+      }
+
+      // Non-recurring reminders (routine, exam, etc.): remove 24 hours after
       if (!model.isRecurring && isPastBy24h) {
         toDelete.add(model.id);
         continue;
       }
 
-      // Birthday that does NOT repeat every year: remove 24 hours after birthday date
+      // Birthday that does NOT repeat every year: remove 24 hours after
       final isNonYearlyBirthday = model.category == 'birthday' &&
           (!model.isRecurring || model.recurrenceType != 'Yearly');
       if (isNonYearlyBirthday && isPastBy24h) {
@@ -61,10 +70,49 @@ class ReminderRepositoryImpl implements ReminderRepository {
       await deleteReminder(id);
     }
 
+    // Advance recurring calendar reminders to next occurrence and reschedule
+    final boxKeys = localDatabase.remindersBox.keys.toList();
+    for (final key in boxKeys) {
+      final model = localDatabase.remindersBox.get(key);
+      if (model == null ||
+          model.category != 'calendar' ||
+          !model.isRecurring ||
+          model.scheduledTime.isAfter(now)) continue;
+      final next = _nextCalendarOccurrence(model);
+      final updated = ReminderModel(
+        id: model.id,
+        title: model.title,
+        scheduledTime: next,
+        isRecurring: true,
+        recurrenceType: model.recurrenceType,
+        isCompleted: model.isCompleted,
+        category: model.category,
+      );
+      await localDatabase.remindersBox.put(key, updated);
+      if (FirebaseAuth.instance.currentUser != null) {
+        try {
+          await firestoreDatabase.addReminder(updated);
+        } catch (e) {
+          debugPrint('Firestore update recurring calendar: $e');
+        }
+      }
+      try {
+        await notificationService.cancelNotification(model.id.hashCode);
+        await notificationService.scheduleAtTime(
+          id: model.id.hashCode,
+          title: 'Reminder: ${model.title}',
+          body: 'Time for your reminder!',
+          scheduledTime: next,
+        );
+      } catch (e) {
+        debugPrint('Calendar recur reschedule failed: $e');
+      }
+    }
+
     final models = localDatabase.remindersBox.values.toList();
-    // Heal notification schedules for already-saved future exams.
-    // This ensures countdown notifications exist even after app updates/reinstalls.
     final nowAfterCleanup = DateTime.now();
+
+    // Heal notification schedules for already-saved future exams.
     for (final model in models) {
       if (model.category != 'exam') continue;
       if (!model.scheduledTime.isAfter(nowAfterCleanup)) continue;
@@ -80,6 +128,23 @@ class ReminderRepositoryImpl implements ReminderRepository {
         );
       } catch (e) {
         debugPrint('Exam reschedule on load failed (${exam.id}): $e');
+      }
+    }
+
+    // Heal birthday notifications so they fire after app/device restart.
+    for (final model in models) {
+      if (model.category != 'birthday') continue;
+      final entity = _mapModelToEntity(model);
+      try {
+        await notificationService.cancelBirthdayNotifications(model.id.hashCode);
+        await notificationService.scheduleBirthdayNotification(
+          id: model.id.hashCode,
+          name: entity.title,
+          birthdayDate: entity.scheduledTime,
+          isYearly: entity.isRecurring,
+        );
+      } catch (e) {
+        debugPrint('Birthday reschedule on load failed (${model.id}): $e');
       }
     }
 
@@ -226,5 +291,26 @@ class ReminderRepositoryImpl implements ReminderRepository {
       isCompleted: entity.isCompleted,
       category: entity.category,
     );
+  }
+
+  DateTime _nextCalendarOccurrence(ReminderModel model) {
+    final t = model.scheduledTime;
+    switch (model.recurrenceType) {
+      case 'Daily':
+        return t.add(const Duration(days: 1));
+      case 'Weekly':
+        return t.add(const Duration(days: 7));
+      case 'Monthly': {
+        int ny = t.year;
+        int nm = t.month + 1;
+        if (nm > 12) {
+          nm = 1;
+          ny++;
+        }
+        return DateTime(ny, nm, t.day.clamp(1, 28));
+      }
+      default:
+        return t.add(const Duration(days: 1));
+    }
   }
 }

@@ -494,8 +494,8 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                         'Routines',
                         routinesCount.toString(),
                         Icons.schedule,
-                        onTap: () =>
-                            Navigator.pushNamed(context, AppRoutes.planner),
+                        onTap: () => Navigator.pushNamed(
+                            context, AppRoutes.planner, arguments: 0),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -506,8 +506,8 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                         'Exams',
                         examsCount.toString(),
                         Icons.school,
-                        onTap: () =>
-                            Navigator.pushNamed(context, AppRoutes.planner),
+                        onTap: () => Navigator.pushNamed(
+                            context, AppRoutes.planner, arguments: 1),
                       ),
                     ),
                   ],

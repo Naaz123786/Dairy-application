@@ -14,6 +14,7 @@ import 'presentation/bloc/theme_cubit.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'data/datasources/local_database.dart';
+import 'domain/repositories/reminder_repository.dart';
 import 'presentation/widgets/theme_background.dart';
 import 'core/services/notification_service.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -56,14 +57,59 @@ void main() {
       await notificationService.scheduleDailyReminder();
     }
 
+    // Reschedule exam & birthday notifications on every app start (survives reboot/kill)
+    try {
+      await di.sl<ReminderRepository>().getReminders();
+    } catch (e) {
+      debugPrint('Startup reminder reschedule: $e');
+    }
+
     final initialRoute =
         localDb.isOnboardingComplete() ? AppRoutes.home : AppRoutes.onboarding;
 
-    runApp(MyApp(initialRoute: initialRoute));
+    runApp(PersistenceWrapper(child: MyApp(initialRoute: initialRoute)));
   }, (error, stack) {
     debugPrint('Startup Error: $error');
     debugPrint(stack.toString());
   });
+}
+
+/// Flushes Hive boxes to disk when app goes to background so data persists after close.
+class PersistenceWrapper extends StatefulWidget {
+  const PersistenceWrapper({super.key, required this.child});
+  final Widget child;
+
+  @override
+  State<PersistenceWrapper> createState() => _PersistenceWrapperState();
+}
+
+class _PersistenceWrapperState extends State<PersistenceWrapper>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Flush Hive to disk when app goes to background so data persists after close
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      di.sl<LocalDatabase>().flushBoxes();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class MyApp extends StatelessWidget {

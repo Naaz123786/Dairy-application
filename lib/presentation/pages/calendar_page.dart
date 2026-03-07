@@ -365,9 +365,7 @@ class _CalendarViewState extends State<CalendarView> {
                   icon: Icons.delete_outline,
                   label: 'Delete',
                   color: Colors.red,
-                  onTap: () => context.read<ReminderBloc>().add(
-                        DeleteReminder(reminder.id),
-                      ),
+                  onTap: () => _confirmDeleteReminder(context, reminder),
                 ),
               ],
             ),
@@ -458,6 +456,32 @@ class _CalendarViewState extends State<CalendarView> {
     );
   }
 
+  void _confirmDeleteReminder(BuildContext context, Reminder reminder) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete reminder?'),
+        content: Text(
+          '"${reminder.title}" will be removed. You can add it again later.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<ReminderBloc>().add(DeleteReminder(reminder.id));
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showReminderDialog(BuildContext parentContext, {Reminder? reminder}) {
     showDialog(
       context: parentContext,
@@ -468,6 +492,12 @@ class _CalendarViewState extends State<CalendarView> {
         DateTime selectedDate = reminder?.scheduledTime ?? DateTime.now();
         bool isBirthday = reminder?.category == 'birthday' || reminder == null;
         bool isYearlyRepeat = reminder?.isRecurring ?? true;
+        String calendarRepeat = reminder?.recurrenceType ?? 'None';
+        if (reminder != null &&
+            reminder.category == 'calendar' &&
+            !['None', 'Daily', 'Weekly', 'Monthly'].contains(reminder.recurrenceType)) {
+          calendarRepeat = 'None';
+        }
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return StatefulBuilder(
@@ -601,6 +631,57 @@ class _CalendarViewState extends State<CalendarView> {
                       onChanged: (val) => setState(() => isYearlyRepeat = val),
                       contentPadding: EdgeInsets.zero,
                     ),
+                  if (!isBirthday) ...[
+                    const Text('Repeat',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('None'),
+                          selected: calendarRepeat == 'None',
+                          onSelected: (_) =>
+                              setState(() => calendarRepeat = 'None'),
+                          selectedColor: Colors.cyan.withValues(alpha: 0.2),
+                        ),
+                        ChoiceChip(
+                          label: const Text('Daily'),
+                          selected: calendarRepeat == 'Daily',
+                          onSelected: (_) =>
+                              setState(() => calendarRepeat = 'Daily'),
+                          selectedColor: Colors.cyan.withValues(alpha: 0.2),
+                        ),
+                        ChoiceChip(
+                          label: const Text('Weekly'),
+                          selected: calendarRepeat == 'Weekly',
+                          onSelected: (_) =>
+                              setState(() => calendarRepeat = 'Weekly'),
+                          selectedColor: Colors.cyan.withValues(alpha: 0.2),
+                        ),
+                        ChoiceChip(
+                          label: const Text('Monthly'),
+                          selected: calendarRepeat == 'Monthly',
+                          onSelected: (_) =>
+                              setState(() => calendarRepeat = 'Monthly'),
+                          selectedColor: Colors.cyan.withValues(alpha: 0.2),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      calendarRepeat == 'None'
+                          ? 'Reminder will be removed 10 min after notification.'
+                          : 'Reminder will repeat ${calendarRepeat.toLowerCase()}.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? Colors.white54
+                            : Colors.black54,
+                      ),
+                    ),
+                  ],
                 ],
               ),
               actions: [
@@ -648,9 +729,12 @@ class _CalendarViewState extends State<CalendarView> {
                       id: reminder?.id ?? const Uuid().v4(),
                       title: titleController.text,
                       scheduledTime: selectedDate,
-                      isRecurring: isBirthday && isYearlyRepeat,
-                      recurrenceType:
-                          (isBirthday && isYearlyRepeat) ? 'Yearly' : 'None',
+                      isRecurring: isBirthday
+                          ? isYearlyRepeat
+                          : (calendarRepeat != 'None'),
+                      recurrenceType: isBirthday
+                          ? (isYearlyRepeat ? 'Yearly' : 'None')
+                          : calendarRepeat,
                       category: isBirthday ? 'birthday' : 'calendar',
                     );
 

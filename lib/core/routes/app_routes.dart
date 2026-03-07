@@ -59,8 +59,14 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => DiaryEditorPage(entry: entry));
       case calendar:
         return MaterialPageRoute(builder: (_) => const CalendarPage());
-      case planner:
-        return MaterialPageRoute(builder: (_) => const PlannerPage());
+      case planner: {
+        final tabIndex = settings.arguments is int
+            ? (settings.arguments as int).clamp(0, 1)
+            : 0;
+        return MaterialPageRoute(
+          builder: (_) => PlannerPage(initialTabIndex: tabIndex),
+        );
+      }
       case login:
         return MaterialPageRoute(builder: (_) => const LoginPage());
       case onboarding:

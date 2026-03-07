@@ -76,36 +76,51 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
     });
 
     on<AddReminder>((event, emit) async {
+      final currentState = state;
+      if (currentState is ReminderLoaded) {
+        emit(ReminderLoaded([...currentState.reminders, event.reminder]));
+      }
       try {
         await repository.addReminder(event.reminder);
-        add(LoadReminders());
       } catch (e) {
+        if (currentState is ReminderLoaded) {
+          add(LoadReminders());
+        }
         emit(ReminderError('Failed to add reminder'));
       }
     });
 
     on<UpdateReminder>((event, emit) async {
+      final currentState = state;
+      if (currentState is ReminderLoaded) {
+        final updated = currentState.reminders
+            .map((r) => r.id == event.reminder.id ? event.reminder : r)
+            .toList();
+        emit(ReminderLoaded(updated));
+      }
       try {
         await repository.updateReminder(event.reminder);
-        add(LoadReminders());
       } catch (e) {
+        if (currentState is ReminderLoaded) {
+          add(LoadReminders());
+        }
         emit(ReminderError('Failed to update reminder'));
       }
     });
 
     on<DeleteReminder>((event, emit) async {
+      final currentState = state;
+      if (currentState is ReminderLoaded) {
+        final newList =
+            currentState.reminders.where((r) => r.id != event.id).toList();
+        emit(ReminderLoaded(newList));
+      }
       try {
         await repository.deleteReminder(event.id);
-        final currentState = state;
+      } catch (e) {
         if (currentState is ReminderLoaded) {
-          final newList =
-              currentState.reminders.where((r) => r.id != event.id).toList();
-          emit(ReminderLoaded(newList));
-        } else {
           add(LoadReminders());
         }
-      } catch (e) {
-        add(LoadReminders());
         emit(ReminderError('Failed to delete reminder'));
       }
     });
